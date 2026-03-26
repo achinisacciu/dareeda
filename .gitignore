@@ -20,3 +20,5 @@ projects/dareeda.db
 # OS
 .DS_Store
 Thumbs.db
+*.db
+*.sqlite3
