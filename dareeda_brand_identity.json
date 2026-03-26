@@ -1,0 +1,87 @@
+{
+  "name": "DAREEDA",
+  "slogan": "Dati puri. Flussi solidi.",
+  "styleName": "Minimalismo Brutalista",
+  "mission": "Eliminare il superfluo nei processi di analisi dati per permettere ai team di concentrarsi sull'essenziale.",
+  "vision": "Diventare lo standard strutturale per l'architettura dei dati industriale globale.",
+  "targetAudience": "Data Scientist Senior e Ingegneri dei Dati che cercano efficienza cruda.",
+  "brandVoice": "Diretta, autorevole, senza fronzoli, tecnica.",
+  "colorPalette": [
+    {
+      "hex": "#000000",
+      "name": "Nero Assoluto",
+      "description": "Rappresenta la profondità del dato e la solidità strutturale.",
+      "contrastAAA": {
+        "onWhite": true,
+        "onBlack": false,
+        "recommendedText": "#FFFFFF"
+      }
+    },
+    {
+      "hex": "#FFFFFF",
+      "name": "Bianco Ottico",
+      "description": "Lo spazio vuoto necessario per la chiarezza del workflow.",
+      "contrastAAA": {
+        "onWhite": false,
+        "onBlack": true,
+        "recommendedText": "#000000"
+      }
+    },
+    {
+      "hex": "#FF4D00",
+      "name": "Arancio Segnale",
+      "description": "Utilizzato per evidenziare errori critici e call-to-action nel codice.",
+      "contrastAAA": {
+        "onWhite": false,
+        "onBlack": false,
+        "recommendedText": "#FFFFFF"
+      }
+    },
+    {
+      "hex": "#2B2B2B",
+      "name": "Antracite Industriale",
+      "description": "Colore di sfondo per le interfacce di analisi ad alto contrasto.",
+      "contrastAAA": {
+        "onWhite": true,
+        "onBlack": false,
+        "recommendedText": "#FFFFFF"
+      }
+    }
+  ],
+  "gradients": [
+    {
+      "colors": [
+        "#2B2B2B Greenland",
+        "#000000"
+      ],
+      "name": "Deep Structure",
+      "css": "linear-gradient(180deg, #2B2B2B 0%, #000000 100%)"
+    },
+    {
+      "colors": [
+        "#FF4D00",
+        "#B33600"
+      ],
+      "name": "Energy Flow",
+      "css": "linear-gradient(90deg, #FF4D00 0%, #B33600 100%)"
+    }
+  ],
+  "typography": {
+    "primary": "JetBrains Mono",
+    "secondary": "Inter Bold",
+    "rationale": "L'uso di un font monospaziato richiama l'ambiente di programmazione, mentre Inter garantisce leggibilità industriale."
+  },
+  "uiElements": {
+    "buttonStyle": "Rettangolare, angoli vivi, bordo spesso 2px nero.",
+    "inputStyle": "Sfondo grigio chiaro, bordo inferiore nero, font monospazio.",
+    "cardStyle": "Bordi netti, ombre dure (hard shadows) a 45 gradi.",
+    "borderRadius": "0px"
+  },
+  "logoConcept": "Un monogramma 'D' creato con blocchi rettangolari pesanti, che ricorda una trave d'acciaio o una struttura architettonica.",
+  "keywords": [
+    "Rigore",
+    "Struttura",
+    "Efficienza",
+    "Raw"
+  ]
+}

@@ -1,0 +1,283 @@
+@import './tokens.css';
+
+/* ============================================
+   DAREEDA GLOBAL STYLES - Tech Elegance
+   ============================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  /* Dark theme background - Deep Space gradient */
+  background: var(--gradient-deep-space);
+  background-attachment: fixed;
+  color: var(--color-text-primary);
+  font-family: var(--font-primary);
+  font-size: 16px; /* Base size corretto */
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   SCROLLBAR ELEGANTE (dark theme)
+   ============================================ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-slate-grey);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ocean-blue);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-slate-grey) rgba(255, 255, 255, 0.05);
+}
+
+/* ============================================
+   SELECTION
+   ============================================ */
+::selection {
+  background: rgba(89, 173, 247, 0.3);
+  color: #FFFFFF;
+}
+
+/* ============================================
+   TYPOGRAPHY UTILITIES
+   ============================================ */
+
+/* Font families */
+.font-primary { font-family: var(--font-primary); }
+.font-secondary { font-family: var(--font-secondary); }
+.font-mono { font-family: var(--font-mono); }
+
+/* Headlines - Connext Sans */
+.headline-1 {
+  font-family: var(--font-secondary);
+  font-size: var(--text-5xl);
+  line-height: var(--leading-tight);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.headline-2 {
+  font-family: var(--font-secondary);
+  font-size: var(--text-4xl);
+  line-height: var(--leading-tight);
+  font-weight: 500;
+}
+
+.subheading {
+  font-family: var(--font-primary);
+  font-size: var(--text-xl);
+  line-height: 24px;
+  font-weight: 400; /* Book weight */
+}
+
+/* Body text - Lynea Sans Light */
+.body-large {
+  font-family: var(--font-primary);
+  font-size: var(--text-2xl);
+  line-height: 26px;
+  font-weight: 300; /* Light */
+}
+
+.body-text {
+  font-family: var(--font-primary);
+  font-size: var(--text-lg);
+  line-height: var(--leading-normal);
+  font-weight: 300;
+}
+
+.caption {
+  font-family: var(--font-primary);
+  font-size: var(--text-sm);
+  line-height: 18px;
+  font-weight: 200; /* Extra Light */
+}
+
+/* ============================================
+   COLOR UTILITIES
+   ============================================ */
+
+.text-primary { color: var(--color-text-primary); }
+.text-secondary { color: var(--color-text-secondary); }
+.text-muted { color: var(--color-text-muted); }
+.text-accent { color: var(--color-leonardo-red); }
+.text-ocean { color: var(--color-ocean-blue); }
+
+.bg-glass {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  border: var(--glass-border);
+  border-radius: var(--radius-lg);
+}
+
+/* ============================================
+   GLASS CARD COMPONENT
+   ============================================ */
+.glass-card {
+  background: linear-gradient(135deg, rgba(27, 39, 47, 0.8) 0%, rgba(55, 66, 74, 0.6) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  padding: 24px;
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+
+.btn-primary {
+  background: var(--gradient-leonardo-pulse);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-family: var(--font-primary);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(90deg, rgb(200, 0, 37) 0%, rgb(200, 0, 37) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(226, 0, 42, 0.3);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-family: var(--font-primary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* ============================================
+   FORM ELEMENTS
+   ============================================ */
+
+.input-field {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  color: #FFFFFF;
+  padding: 12px 16px;
+  font-family: var(--font-primary);
+  font-size: 14px;
+  width: 100%;
+  transition: all var(--transition-fast);
+}
+
+.input-field::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--color-ocean-blue);
+  box-shadow: 0 0 0 3px rgba(89, 173, 247, 0.2);
+}
+
+/* ============================================
+   BADGES
+   ============================================ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-primary);
+  border: 1px solid;
+}
+
+.badge-success {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--color-success);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.badge-warning {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--color-warning);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.badge-error {
+  background: rgba(228, 0, 43, 0.2);
+  color: var(--color-error);
+  border-color: rgba(228, 0, 43, 0.3);
+}
+
+.badge-info {
+  background: rgba(89, 173, 247, 0.2);
+  color: var(--color-info);
+  border-color: rgba(89, 173, 247, 0.3);
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focus visible for keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--color-ocean-blue);
+  outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

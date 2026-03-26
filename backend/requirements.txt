@@ -1,0 +1,29 @@
+# Web framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+python-multipart>=0.0.20
+aiofiles>=24.1.0
+
+# Database
+sqlalchemy>=2.0.0
+
+# Data processing
+polars>=1.20.0
+pandas>=2.2.0
+duckdb>=1.2.0
+numpy>=2.0.0
+openpyxl>=3.1.0
+
+# Machine Learning
+scikit-learn>=1.6.0
+
+# Statistics & Time Series
+scipy>=1.15.0
+statsmodels>=0.14.0
+
+# Chart export (per PDF)
+kaleido>=0.2.1
+plotly>=6.0.0
+
+# Utilities
+python-dotenv>=1.0.0

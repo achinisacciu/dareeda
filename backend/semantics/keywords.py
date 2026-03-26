@@ -1,0 +1,109 @@
+"""
+DAREEDA Semantic Keywords
+Dizionario centralizzato multilingua per il rilevamento semantico delle colonne.
+Lingue: italiano, inglese, francese, spagnolo, tedesco, portoghese
+"""
+
+PRICE_KEYWORDS = [
+    # Inglese
+    "price", "unit_price", "list_price", "sale_price", "selling_price",
+    "cost", "amount", "value", "rate", "fee", "fare", "charge",
+    "revenue", "sales", "gross", "net", "total", "subtotal",
+    "tariff", "billing", "invoice",
+    # Italiano
+    "prezzo", "costo", "importo", "valore", "ricavo", "vendita",
+    "fattura", "tariffa", "quota",
+    # Francese
+    "prix", "montant", "valeur", "cout", "coût", "tarif",
+    "recette", "chiffre",
+    # Spagnolo
+    "precio", "costo", "importe", "valor", "venta", "tarifa",
+    "ingreso", "cobro",
+    # Tedesco
+    "preis", "kosten", "betrag", "wert", "einnahme",
+    # Portoghese
+    "preco", "preço", "custo", "valor", "receita",
+]
+
+QUANTITY_KEYWORDS = [
+    # Inglese
+    "qty", "quantity", "count", "num", "number", "amount",
+    "stock", "units", "volume", "total", "sum", "n_",
+    "pieces", "items", "orders", "sold",
+    # Italiano
+    "quantita", "quantità", "qta", "numero", "pezzi",
+    "scorte", "unita", "unità", "totale",
+    # Francese
+    "quantite", "quantité", "nombre", "unites", "unités",
+    "stock", "pieces",
+    # Spagnolo
+    "cantidad", "numero", "unidades", "piezas", "existencias",
+    # Tedesco
+    "menge", "anzahl", "einheiten", "bestand",
+    # Portoghese
+    "quantidade", "numero", "unidades", "pecas",
+]
+
+ID_KEYWORDS = [
+    # Pattern prefisso/suffisso
+    "_id", "id_", "_key", "key_", "_code", "code_",
+    "_cod", "cod_", "_num", "num_",
+    # Inglese
+    "id", "identifier", "uuid", "guid", "sku", "barcode",
+    "reference", "ref", "serial", "token",
+    # Italiano
+    "codice", "identificativo", "matricola", "progressivo",
+    # Francese
+    "identifiant", "code", "référence", "numero",
+    # Spagnolo
+    "identificador", "codigo", "referencia",
+    # Tedesco
+    "kennung", "nummer", "schlüssel",
+]
+
+DISCOUNT_KEYWORDS = [
+    # Inglese
+    "discount", "rebate", "reduction", "markdown", "promo",
+    "coupon", "voucher", "deduction", "allowance",
+    # Italiano
+    "sconto", "ribasso", "riduzione", "promozione",
+    # Francese
+    "remise", "rabais", "réduction", "promotion",
+    # Spagnolo
+    "descuento", "rebaja", "promocion", "reduccion",
+    # Tedesco
+    "rabatt", "nachlass", "ermässigung",
+    # Portoghese
+    "desconto", "reducao", "promocao",
+]
+
+MARGIN_KEYWORDS = [
+    # Inglese
+    "margin", "profit", "markup", "earnings", "income",
+    "gain", "ebitda", "ebit", "contribution",
+    # Italiano
+    "margine", "profitto", "utile", "guadagno", "ricavo_netto",
+    # Francese
+    "marge", "profit", "bénéfice", "benefice",
+    # Spagnolo
+    "margen", "ganancia", "beneficio", "utilidad",
+    # Tedesco
+    "marge", "gewinn", "ertrag",
+]
+
+CATEGORICAL_KEYWORDS = [
+    # Inglese
+    "status", "state", "type", "category", "cat", "class",
+    "group", "role", "gender", "brand", "country", "region",
+    "segment", "tier", "level", "channel", "source", "medium",
+    "flag", "label", "tag", "mode", "kind",
+    # Italiano
+    "stato", "tipo", "categoria", "classe", "gruppo", "ruolo",
+    "genere", "marca", "paese", "regione", "segmento", "livello",
+    # Francese
+    "statut", "type", "catégorie", "classe", "groupe", "pays",
+    # Spagnolo
+    "estado", "tipo", "categoria", "clase", "grupo", "pais",
+    # Tedesco
+    "status", "typ", "kategorie", "klasse", "gruppe", "land",
+]
