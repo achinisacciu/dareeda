@@ -1,7 +1,7 @@
-from .revenue import RevenueRule
-from .ratios import RatioRule
-from .margin import MarginRule
 from .datetime_features import DatetimeFeaturesRule
+from .margin import MarginRule
+from .ratios import RatioRule
+from .revenue import RevenueRule
 
 FEATURE_RULES = [
     RevenueRule(),    # price × quantity → ricavo

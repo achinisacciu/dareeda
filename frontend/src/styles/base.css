@@ -1,0 +1,123 @@
+/* Reset e stili base */
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+    scroll-padding-top: 4rem;
+    hanging-punctuation: first last;
+  }
+
+  body {
+    min-height: 100dvh;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;    /* 14px — UI dense di default */
+    line-height: 1.5;
+    color: var(--color-text);
+    background-color: var(--color-bg);
+    transition:
+      background-color var(--duration-base) var(--ease-ui),
+      color var(--duration-base) var(--ease-ui);
+  }
+
+  img, picture, video, canvas, svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+
+  input, button, textarea, select {
+    font: inherit;
+    color: inherit;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    text-wrap: balance;
+    line-height: 1.2;
+    color: var(--color-text);
+  }
+
+  h1 { font-size: 1.5rem;   font-weight: 600; }
+  h2 { font-size: 1.25rem;  font-weight: 600; }
+  h3 { font-size: 1.125rem; font-weight: 600; }
+  h4 { font-size: 1rem;     font-weight: 600; }
+  h5 { font-size: 0.875rem; font-weight: 600; }
+  h6 { font-size: 0.8125rem; font-weight: 600; }
+
+  p, li, figcaption {
+    text-wrap: pretty;
+    max-width: 72ch;
+  }
+
+  ul[role="list"], ol[role="list"] {
+    list-style: none;
+  }
+
+  button {
+    cursor: pointer;
+    background: none;
+    border: none;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  code, kbd, samp, pre {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+  }
+
+  ::selection {
+    background: var(--color-primary-light);
+    color: var(--color-text);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: var(--radius-md);
+  }
+
+  a {
+    color: var(--color-primary);
+    text-decoration: none;
+    transition: color var(--duration-fast) var(--ease-ui);
+  }
+
+  a:hover {
+    color: var(--color-primary-hover);
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

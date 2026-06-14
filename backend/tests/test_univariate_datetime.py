@@ -1,7 +1,6 @@
 import datetime
 
 import polars as pl
-
 from eda.modules.univariate import run
 
 

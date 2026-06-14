@@ -1,5 +1,6 @@
-from .registry import DETECTORS
 from .feature_engineering.registry import FEATURE_RULES
+from .registry import DETECTORS
+
 
 def analyze_dataset(df):
     results = {}

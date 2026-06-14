@@ -1,8 +1,9 @@
-import polars as pl
 import re
 
+import polars as pl
+
 # Soglie
-BOOL_VALUES      = {0, 1, "0", "1", "true", "false", "yes", "no", "si", "no", "t", "f", "y", "n"}
+BOOL_VALUES      = {0, 1, "0", "1", "true", "false", "yes", "no", "si", "t", "f", "y", "n"}
 ID_KEYWORDS      = re.compile(r"\b(id|key|uuid|guid|code|cod|codice|pk|fk|ref|hash)\b", re.IGNORECASE)
 GEO_LAT_KW       = re.compile(r"\b(lat|latitude|latitudine)\b", re.IGNORECASE)
 GEO_LON_KW       = re.compile(r"\b(lon|lng|longitude|longitudine)\b", re.IGNORECASE)
@@ -28,7 +29,7 @@ def detect_semantic_type(series: pl.Series) -> str:
     name   = series.name
     dtype  = series.dtype
     n      = len(series)
-    n_null = series.null_count()
+    series.null_count()
     valid  = series.drop_nulls()
     n_unq  = valid.n_unique() if len(valid) > 0 else 0
     card_r = n_unq / n if n > 0 else 0

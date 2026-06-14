@@ -1,9 +1,10 @@
-import polars as pl
-import plotly.graph_objects as go
-import plotly.express as px
-import json, math
-from scipy import stats as scipy_stats
+import json
+import math
+
 import numpy as np
+import plotly.graph_objects as go
+import polars as pl
+from scipy import stats as scipy_stats
 
 
 def _fig(fig: go.Figure) -> dict:

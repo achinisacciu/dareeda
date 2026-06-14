@@ -7,6 +7,7 @@ sys.path.append(str(Path(__file__).parent.absolute()))
 import polars as pl
 from eda.modules import ml_exploratory
 
+
 def test_ml_exploratory():
     print("\n" + "="*50)
     print("=== TEST FASE 1: TARGET SELECTION ===")
@@ -20,7 +21,7 @@ def test_ml_exploratory():
         "target_null": [None, None, None, None, None]*4,
         "cat1": ["A", "B", "A", "B", "A"]*4
     })
-    
+
     df_full = df
     semantic_types = {
         "num1": "numeric_continuous",

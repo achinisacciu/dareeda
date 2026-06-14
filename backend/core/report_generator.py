@@ -1,6 +1,8 @@
+import io
 import os
 import shutil
 import subprocess
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
@@ -560,26 +562,43 @@ def _generate_typst(data: dict, img_dir: Path, chart_map: dict) -> str:
     return "".join(document)
 
 
-def generate_report(analysis_id: str, analysis_data: dict, output_dir: Path) -> Path:
-    output_dir.mkdir(parents=True, exist_ok=True)
-    img_dir = output_dir / "images"
-    img_dir.mkdir(exist_ok=True)
+def generate_report_in_memory(analysis_data: dict) -> io.BytesIO:
+    # Creiamo una cartella temporanea che si auto-distruggerà
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = Path(tmp_dir)
 
-    chart_map = _collect_charts(analysis_data, img_dir)
-    typst_source = _generate_typst(analysis_data, img_dir, chart_map)
+        # Creiamo la sottocartella images per Plotly
+        img_dir = tmp_path / "images"
+        img_dir.mkdir(exist_ok=True)
 
-    typ_path = output_dir / f"report_{analysis_id}.typ"
-    pdf_path = output_dir / f"report_{analysis_id}.pdf"
-    typ_path.write_text(typst_source, encoding="utf-8")
+        # Generiamo le immagini Plotly salvandole temporaneamente
+        chart_map = _collect_charts(analysis_data, img_dir)
 
-    typst_bin = _find_typst()
-    result = subprocess.run(
-        [typst_bin, "compile", str(typ_path), str(pdf_path)],
-        capture_output=True,
-        text=True,
-        cwd=str(output_dir),
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"Typst error: {result.stderr.strip()[:600]}")
+        # Generiamo il codice Typst
+        typst_source = _generate_typst(analysis_data, img_dir, chart_map)
 
-    return pdf_path
+        # Salviamo il file Typst temporaneo
+        typ_path = tmp_path / "report.typ"
+        typ_path.write_text(typst_source, encoding="utf-8")
+
+        # Troviamo l'eseguibile Typst
+        typst_bin = _find_typst()
+
+        # Eseguiamo Typst. Usiamo "-" per l'output: significa che Typst
+        # non salverà un file PDF, ma manderà i bytes del PDF nello standard output
+        result = subprocess.run(
+            [typst_bin, "compile", str(typ_path), "-"],
+            capture_output=True,
+            cwd=str(tmp_path), # Lavoriamo nella cartella temporanea
+        )
+
+        if result.returncode != 0:
+            # result.stderr sarà in bytes, lo decodifichiamo per l'errore
+            error_msg = result.stderr.decode("utf-8", errors="ignore").strip()[:600]
+            raise RuntimeError(f"Typst error: {error_msg}")
+
+        # result.stdout contiene il PDF in formato binario! Lo mettiamo nel buffer
+        pdf_buffer = io.BytesIO(result.stdout)
+        pdf_buffer.seek(0)
+
+        return pdf_buffer

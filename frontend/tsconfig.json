@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    /* Targeting */
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "useDefineForClassFields": true,
+
+    /* Modules */
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+
+    /* Path aliases — usati da tutti gli import @/... */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
+    /* JSX */
+    "jsx": "react-jsx",
+
+    /* Type checking */
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true,
+
+    /* Output */
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["src"]
+}

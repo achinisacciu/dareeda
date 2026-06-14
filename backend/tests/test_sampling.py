@@ -1,6 +1,7 @@
 import polars as pl
-from core.sampling import maybe_sample, get_sample_info
 from core.config import settings
+from core.sampling import get_sample_info, maybe_sample
+
 
 def test_no_sampling_small():
     df = pl.DataFrame({"x": list(range(1000))})

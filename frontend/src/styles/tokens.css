@@ -1,173 +1,129 @@
-/* ============================================
-   DAREEDA BRAND TOKENS - Tech Elegance
-   Font: Space Grotesk (gratuito)
-   ============================================ */
+/* Design tokens — Tailwind v4 @theme
+   Ogni token diventa automaticamente una utility class:
+   --color-primary → bg-primary, text-primary, border-primary, ecc.
+   --radius-md     → rounded-md
+   --spacing-4     → p-4, m-4, gap-4, ecc.                        */
 
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@theme {
+  /* ── Font ─────────────────────────────────────────────────── */
+  --font-sans:    "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    "JetBrains Mono", "Fira Code", ui-monospace, monospace;
 
-:root {
-  /* ============================================
-     TYPOGRAPHY - Versione Gratuita
-     ============================================ */
-  
-  --font-primary: 'Space Grotesk', 'Inter', system-ui, sans-serif;
-  --font-secondary: 'Space Grotesk', 'Inter', system-ui, sans-serif;
-  --font-system: 'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+  /* ── Colori superficie — Light (default) ─────────────────── */
+  --color-bg:               #f8f8f7;
+  --color-surface:          #ffffff;
+  --color-surface-2:        #f3f4f6;
+  --color-surface-offset:   #eceef1;
+  --color-divider:          #e2e4e8;
+  --color-border:           #d1d5db;
 
-  /* Font Sizes */
-  --text-xs: 12px;
-  --text-sm: 14px;
-  --text-base: 16px;
-  --text-lg: 18px;
-  --text-xl: 20px;
-  --text-2xl: 24px;
-  --text-3xl: 32px;
-  --text-4xl: 48px;
-  --text-5xl: 72px;
+  /* ── Testo ───────────────────────────────────────────────── */
+  --color-text:             #111827;
+  --color-text-muted:       #6b7280;
+  --color-text-faint:       #9ca3af;
+  --color-text-inverse:     #ffffff;
 
-  /* Line Heights */
-  --leading-tight: 1.2;
-  --leading-normal: 1.5;
-  --leading-relaxed: 1.75;
+  /* ── Primary — Teal #01696f ──────────────────────────────── */
+  --color-primary:          #01696f;
+  --color-primary-hover:    #0c4e54;
+  --color-primary-active:   #0f3638;
+  --color-primary-light:    #e0f0f0;
+  --color-primary-fg:       #ffffff;
 
-  /* ============================================
-     COLORS
-     ============================================ */
-  
-  /* Primary Colors */
-  --color-leonardo-red: #E4002B;
-  --color-leonardo-red-hover: #C40025;
-  --color-deep-space: #0904AE;
-  --color-midnight-navy: #0B054D;
-  
-  /* Secondary Colors */
-  --color-ocean-blue: #59ADF7;
-  --color-deep-teal: #112F44;
-  
-  /* Neutrals */
-  --color-absolute-black: #000000;
-  --color-slate-grey: #37424A;
-  --color-charcoal: #1B272F;
-  --color-warm-grey: #D2CCC4;
-  --color-metallic-silver: #B8C0D0;
-  
-  /* Semantic Colors */
-  --color-success: #10B981;
-  --color-warning: #F59E0B;
-  --color-error: #E4002B;
-  --color-info: #59ADF7;
-  --color-neutral: #6B7280;
+  /* ── Semantici ───────────────────────────────────────────── */
+  --color-success:          #16a34a;
+  --color-success-light:    #dcfce7;
+  --color-warning:          #d97706;
+  --color-warning-light:    #fef3c7;
+  --color-error:            #dc2626;
+  --color-error-light:      #fee2e2;
+  --color-info:             #0284c7;
+  --color-info-light:       #e0f2fe;
 
-  /* Background System (DARK MODE default) */
-  --color-bg-primary: var(--color-deep-space);
-  --color-bg-secondary: var(--color-midnight-navy);
-  --color-bg-card: rgba(27, 39, 47, 0.8);
-  --color-bg-elevated: rgba(55, 66, 74, 0.6);
-  
-  /* Text Colors */
-  --color-text-primary: #FFFFFF;
-  --color-text-secondary: rgba(255, 255, 255, 0.7);
-  --color-text-muted: rgba(255, 255, 255, 0.5);
-  --color-text-inverse: var(--color-absolute-black);
-
-  /* Surface & Borders */
-  --color-surface: var(--color-charcoal);
-  --color-border-subtle: rgba(255, 255, 255, 0.1);
-  --color-border-default: rgba(255, 255, 255, 0.15);
-  --color-border-strong: rgba(255, 255, 255, 0.3);
-
-  /* ============================================
-     GRADIENTS
-     ============================================ */
-  
-  /* Deep Space - Background principale */
-  --gradient-deep-space: linear-gradient(135deg, #1b272f 0%, #37424A 100%);
-  
-  /* Ocean Flow - Card highlights */
-  --gradient-ocean-flow: linear-gradient(135deg, #112F44 0%, #59ADF7 100%);
-  
-  /* Leonardo Pulse - CTA/Accent */
-  --gradient-leonardo-pulse: linear-gradient(90deg, #E4002B 0%, #E2002A 100%);
-  
-  /* Glass Reflection - Overlay effects */
-  --gradient-glass: linear-gradient(180deg, 
-    rgba(255, 255, 255, 0.1) 0%, 
-    rgba(255, 255, 255, 0.05) 50%, 
-    rgba(255, 255, 255, 0.08) 100%
-  );
-
-  /* ============================================
-     SPACING (8px grid system)
-     ============================================ */
-  
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 24px;
-  --space-6: 32px;
-  --space-7: 48px;
-  --space-8: 64px;
-
-  /* ============================================
-     BORDERS & RADIUS
-     ============================================ */
-  
-  --border-width-thin: 1px;
-  --border-width-default: 1px;
-  --border-width-thick: 2px;
-  
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  /* ── Radius ──────────────────────────────────────────────── */
+  --radius-sm:   0.25rem;
+  --radius-md:   0.375rem;
+  --radius-lg:   0.5rem;
+  --radius-xl:   0.75rem;
+  --radius-2xl:  1rem;
   --radius-full: 9999px;
 
-  /* ============================================
-     SHADOWS & EFFECTS
-     ============================================ */
-  
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.25);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.3);
-  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.35);
-  
-  /* Glow effects */
-  --glow-red: 0 0 20px rgba(226, 0, 43, 0.4);
-  --glow-blue: 0 0 20px rgba(89, 173, 247, 0.4);
-  --glow-navy: 0 0 20px rgba(9, 4, 174, 0.4);
+  /* ── Shadows ─────────────────────────────────────────────── */
+  --shadow-xs:  0 1px 2px rgb(0 0 0 / 0.05);
+  --shadow-sm:  0 1px 3px rgb(0 0 0 / 0.08), 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-md:  0 4px 6px rgb(0 0 0 / 0.07), 0 2px 4px rgb(0 0 0 / 0.05);
+  --shadow-lg:  0 10px 15px rgb(0 0 0 / 0.08), 0 4px 6px rgb(0 0 0 / 0.04);
+  --shadow-xl:  0 20px 25px rgb(0 0 0 / 0.08), 0 8px 10px rgb(0 0 0 / 0.04);
 
-  /* Glassmorphism */
-  --glass-bg: rgba(255, 255, 255, 0.05);
-  --glass-backdrop: blur(20px);
-  --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+  /* ── Transizioni ─────────────────────────────────────────── */
+  --ease-ui:   cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast:   120ms;
+  --duration-base:   180ms;
+  --duration-slow:   280ms;
+}
 
-  /* ============================================
-     TRANSITIONS
-     ============================================ */
-  
-  --transition-fast: 150ms ease;
-  --transition-normal: 250ms ease;
-  --transition-slow: 350ms ease;
-  --transition-bounce: 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+/* ── Dark mode — sovrascrive i token superficie e testo ──────── */
+[data-theme="dark"] {
+  --color-bg:               #0f1117;
+  --color-surface:          #161b22;
+  --color-surface-2:        #1c2333;
+  --color-surface-offset:   #21262d;
+  --color-divider:          #30363d;
+  --color-border:           #3d444d;
 
-  /* ============================================
-     LAYOUT
-     ============================================ */
-  
-  --sidebar-width-expanded: 240px;
-  --sidebar-width-collapsed: 72px;
-  --sidebar-transition: width 250ms ease;
-  
-  --header-height: 64px;
-  --content-max-width: 1440px;
-  
-  /* Z-index scale */
-  --z-base: 0;
-  --z-dropdown: 100;
-  --z-sticky: 200;
-  --z-modal: 300;
-  --z-popover: 400;
-  --z-toast: 500;
+  --color-text:             #e6edf3;
+  --color-text-muted:       #8d96a0;
+  --color-text-faint:       #545d68;
+  --color-text-inverse:     #0f1117;
+
+  --color-primary:          #3fa8ae;
+  --color-primary-hover:    #5bbfc4;
+  --color-primary-active:   #72d0d5;
+  --color-primary-light:    #0d2f30;
+  --color-primary-fg:       #0f1117;
+
+  --color-success:          #3fb950;
+  --color-success-light:    #0d2a14;
+  --color-warning:          #e3b341;
+  --color-warning-light:    #2d1f00;
+  --color-error:            #f85149;
+  --color-error-light:      #2d0b0b;
+  --color-info:             #58a6ff;
+  --color-info-light:       #051d35;
+
+  --shadow-xs:  0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-sm:  0 1px 3px rgb(0 0 0 / 0.4), 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-md:  0 4px 6px rgb(0 0 0 / 0.4), 0 2px 4px rgb(0 0 0 / 0.3);
+  --shadow-lg:  0 10px 15px rgb(0 0 0 / 0.4), 0 4px 6px rgb(0 0 0 / 0.3);
+  --shadow-xl:  0 20px 25px rgb(0 0 0 / 0.4), 0 8px 10px rgb(0 0 0 / 0.3);
+}
+
+/* ── Fallback system preference ──────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-bg:               #0f1117;
+    --color-surface:          #161b22;
+    --color-surface-2:        #1c2333;
+    --color-surface-offset:   #21262d;
+    --color-divider:          #30363d;
+    --color-border:           #3d444d;
+    --color-text:             #e6edf3;
+    --color-text-muted:       #8d96a0;
+    --color-text-faint:       #545d68;
+    --color-text-inverse:     #0f1117;
+    --color-primary:          #3fa8ae;
+    --color-primary-hover:    #5bbfc4;
+    --color-primary-active:   #72d0d5;
+    --color-primary-light:    #0d2f30;
+    --color-primary-fg:       #0f1117;
+    --color-success:          #3fb950;
+    --color-success-light:    #0d2a14;
+    --color-warning:          #e3b341;
+    --color-warning-light:    #2d1f00;
+    --color-error:            #f85149;
+    --color-error-light:      #2d0b0b;
+    --color-info:             #58a6ff;
+    --color-info-light:       #051d35;
+  }
 }

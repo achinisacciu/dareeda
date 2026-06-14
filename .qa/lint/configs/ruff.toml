@@ -1,0 +1,16 @@
+---
+# Standalone ruff config for .qa/ (no [tool.ruff] wrapper)
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+exclude = [
+    ".venv",
+    "__pycache__",
+    ".pytest_cache",
+    ".pytest_tmp",
+    "node_modules",
+    "dist",
+    "build",
+    "artifacts"
+]
+src = ["backend"]

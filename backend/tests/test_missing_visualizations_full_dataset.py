@@ -1,6 +1,5 @@
 import polars as pl
-
-from core.semantic_typer import type_dataframe, group_by_semantic
+from core.semantic_typer import group_by_semantic, type_dataframe
 from eda.modules import data_quality
 
 

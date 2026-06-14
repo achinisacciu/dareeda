@@ -1,6 +1,7 @@
-import polars as pl
-import plotly.graph_objects as go
 import json
+
+import plotly.graph_objects as go
+import polars as pl
 
 
 def _fig(fig: go.Figure) -> dict:

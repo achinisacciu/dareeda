@@ -1,0 +1,133 @@
+/* Sidebar — Simple sidebar layout (alternativa allo stacked shell)
+   Usato per la pagina di analisi con navigazione tra moduli EDA.
+   Struttura HTML:
+   <div class="sidebar-layout">
+     <aside class="sidebar">
+       <nav class="sidebar-nav">
+         <a class="sidebar-link active">Panoramica</a>
+         ...
+       </nav>
+     </aside>
+     <div class="sidebar-content">...</div>
+   </div>                                                             */
+
+@layer components {
+
+  .sidebar-layout {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ───────────────────────────────────────────────── */
+  .sidebar {
+    width: 15rem;
+    flex-shrink: 0;
+    background-color: var(--color-surface);
+    border-right: 1px solid var(--color-divider);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .sidebar-header {
+    padding: 1.25rem 1rem 0.75rem;
+    border-bottom: 1px solid var(--color-divider);
+  }
+
+  .sidebar-section-label {
+    padding: 1rem 1rem 0.25rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-faint);
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0.5rem 0.5rem;
+  }
+
+  .sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      background-color var(--duration-fast) var(--ease-ui),
+      color            var(--duration-fast) var(--ease-ui);
+    user-select: none;
+  }
+
+  .sidebar-link:hover {
+    background-color: var(--color-surface-2);
+    color: var(--color-text);
+  }
+
+  .sidebar-link.active {
+    background-color: var(--color-primary-light);
+    color: var(--color-primary);
+  }
+
+  .sidebar-link-icon {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+
+  .sidebar-link.active .sidebar-link-icon {
+    opacity: 1;
+  }
+
+  /* Badge di stato accanto al link (es. "Skipped", "Errore") */
+  .sidebar-link-badge {
+    margin-left: auto;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    padding: 0.1rem 0.375rem;
+    border-radius: var(--radius-full);
+    flex-shrink: 0;
+  }
+
+  .sidebar-link-badge.ok      { background: var(--color-success-light); color: var(--color-success); }
+  .sidebar-link-badge.skip    { background: var(--color-surface-offset); color: var(--color-text-faint); }
+  .sidebar-link-badge.error   { background: var(--color-error-light);   color: var(--color-error); }
+  .sidebar-link-badge.loading { background: var(--color-warning-light); color: var(--color-warning); }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--color-divider);
+  }
+
+  /* ── Content area ──────────────────────────────────────────── */
+  .sidebar-content {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    background-color: var(--color-bg);
+    padding: 2rem;
+  }
+
+  /* ── Responsive — sidebar collassa in mobile ───────────────── */
+  @media (max-width: 768px) {
+    .sidebar-layout  { flex-direction: column; overflow: visible; }
+    .sidebar         { width: 100%; border-right: none; border-bottom: 1px solid var(--color-divider); overflow: hidden; }
+    .sidebar-nav     { flex-direction: row; overflow-x: auto; padding: 0.25rem 0.5rem; gap: 0; }
+    .sidebar-section-label { display: none; }
+    .sidebar-link    { padding: 0.5rem 0.75rem; white-space: nowrap; }
+    .sidebar-content { padding: 1.25rem 1rem; }
+  }
+}

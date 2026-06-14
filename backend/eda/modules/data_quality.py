@@ -1,9 +1,10 @@
-import polars as pl
-import plotly.graph_objects as go
-import plotly.figure_factory as ff
 import json
-import numpy as np
 from typing import Any
+
+import numpy as np
+import plotly.figure_factory as ff
+import plotly.graph_objects as go
+import polars as pl
 
 MASKED_MISSING_TOKENS = (
     "",
@@ -786,7 +787,7 @@ def _analyze_text_cleaning(df: pl.DataFrame) -> dict:
                 "severity": _severity(pct),
                 "examples": [
                     {"before": _stringify_example(before), "after": _stringify_example(after)}
-                    for before, after in zip(before_vals, after_vals)
+                    for before, after in zip(before_vals, after_vals, strict=False)
                 ],
             })
 

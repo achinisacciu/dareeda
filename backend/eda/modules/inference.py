@@ -1,7 +1,7 @@
-import polars as pl
+
 import numpy as np
+import polars as pl
 from scipy import stats as sp
-import json
 
 
 def run(df, df_full, semantic_types, groups):

@@ -1,12 +1,14 @@
-import polars as pl
+import json
+
+import numpy as np
 import plotly.graph_objects as go
-import numpy as np, json
-from sklearn.ensemble import IsolationForest, RandomForestClassifier
-from sklearn.neighbors import LocalOutlierFactor
+import polars as pl
 from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.ensemble import IsolationForest
+from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
 from sklearn.metrics import silhouette_score
-from sklearn.feature_selection import mutual_info_regression, mutual_info_classif
+from sklearn.neighbors import LocalOutlierFactor
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 
 def _fig(f): return json.loads(f.to_json())
@@ -69,11 +71,11 @@ def _mutual_info(df, feature_cols, target_col, is_class):
         mat = mat[mask]
 
         if is_class:
-            y_raw = df[target_col].cast(pl.String)[:len(mat)].to_numpy().astype(str)
+            y_raw = df[target_col].cast(pl.String).to_numpy()[mask].astype(str)
             y = LabelEncoder().fit_transform(y_raw)
             mi = mutual_info_classif(mat, y, random_state=42)
         else:
-            y = df[target_col].cast(pl.Float64).fill_null(0)[:len(mat)].to_numpy()
+            y = df[target_col].cast(pl.Float64).fill_null(0).to_numpy()[mask]
             mi = mutual_info_regression(mat, y, random_state=42)
 
         results = [{"feature": feature_cols[i], "mi_score": round(float(mi[i]), 4),

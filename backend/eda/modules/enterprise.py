@@ -10,7 +10,6 @@ from pathlib import Path
 import plotly.graph_objects as go
 import polars as pl
 
-
 PROTECTED_ATTRIBUTE_KEYWORDS = {
     "gender": "gender",
     "sex": "gender",

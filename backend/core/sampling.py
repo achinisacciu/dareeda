@@ -1,6 +1,7 @@
 import polars as pl
 from core.config import settings
 
+
 def maybe_sample(df: pl.DataFrame) -> tuple[pl.DataFrame, bool, int | None]:
     """
     Ritorna (df_finale, sampled: bool, sample_n: int | None).

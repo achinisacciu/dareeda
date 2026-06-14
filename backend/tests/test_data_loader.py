@@ -1,8 +1,9 @@
-import pytest
-import polars as pl
 from pathlib import Path
-import tempfile, os
-from core.data_loader import load_file, get_memory_mb, get_preview
+
+import polars as pl
+import pytest
+from core.data_loader import get_memory_mb, get_preview, load_file
+
 
 def make_csv(path, content):
     Path(path).write_text(content, encoding="utf-8")

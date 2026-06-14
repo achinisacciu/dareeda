@@ -1,13 +1,16 @@
-import sys, os, random
+import os
+import random
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-import polars as pl
 import numpy as np
+import polars as pl
+
 random.seed(42)
 np.random.seed(42)
 
-from core.semantic_typer import type_dataframe, group_by_semantic
-from eda.modules import bivariate, multivariate, timeseries, ml_exploratory, inference
-from eda import orchestrator  # verifica import orchestratore
+from core.semantic_typer import group_by_semantic, type_dataframe
+from eda.modules import bivariate, inference, ml_exploratory, multivariate, timeseries
 
 df = pl.DataFrame({
     "id":     [str(i) for i in range(300)],

@@ -4,7 +4,6 @@ Logica intelligente: abbina le colonne per nome/contesto invece di fare
 il prodotto cartesiano di tutti i price × tutti i quantity.
 """
 
-import polars as pl
 
 # Keyword che indicano un prezzo "unitario" (preferiti per il calcolo ricavo)
 UNIT_PRICE_HINTS = [
@@ -43,7 +42,7 @@ def _columns_are_related(price_col: str, qty_col: str) -> float:
 
     # Stesso prefisso di almeno 3 caratteri
     common = 0
-    for a, b in zip(p, q):
+    for a, b in zip(p, q, strict=False):
         if a == b:
             common += 1
         else:

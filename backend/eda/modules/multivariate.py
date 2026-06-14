@@ -1,6 +1,8 @@
-import polars as pl
+import json
+
+import numpy as np
 import plotly.graph_objects as go
-import numpy as np, json
+import polars as pl
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 

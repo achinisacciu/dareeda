@@ -1,9 +1,12 @@
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-import polars as pl
-from core.semantic_typer import type_dataframe, group_by_semantic
-from eda.modules import overview, data_quality, univariate
 import random
+
+import polars as pl
+from core.semantic_typer import group_by_semantic, type_dataframe
+from eda.modules import data_quality, overview, univariate
 
 # Dataset di test
 random.seed(42)
@@ -16,7 +19,6 @@ df = pl.DataFrame({
     "notes":    [f"Note di testo numero {i} con descrizione lunga abbastanza" for i in range(200)],
 })
 # Aggiungi alcuni missing
-import numpy as np
 mask = pl.Series([None if random.random() < 0.1 else v for v in df["price"].to_list()])
 df = df.with_columns(mask.alias("price"))
 

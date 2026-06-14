@@ -1,0 +1,27 @@
+{
+  "project": {
+    "name": "dareeda-platform",
+    "stack": ["python", "typescript"],
+    "exclude": ["node_modules", ".venv", "dist", "build", "__pycache__", ".pytest_cache", ".pytest_tmp", "artifacts"]
+  },
+  "coverage": {
+    "min_threshold": 80,
+    "fail_below": true
+  },
+  "lint": {
+    "python": { "enabled": true, "max_line_length": 100 },
+    "typescript": { "enabled": true }
+  },
+  "security": {
+    "enabled": true,
+    "fail_on_high": true
+  },
+  "performance": {
+    "enabled": true,
+    "budget_ms": 200
+  },
+  "a11y": {
+    "enabled": true,
+    "wcag_level": "AA"
+  }
+}

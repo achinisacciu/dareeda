@@ -79,7 +79,7 @@ class MarginRule:
                 features.append({
                     "name": f"margin_pct_{sell_col}",
                     "formula": f"({sell_col} - {cost_col}) / NULLIF({sell_col}, 0) * 100",
-                    "description": f"Margine % su prezzo di vendita",
+                    "description": "Margine % su prezzo di vendita",
                     "type": "margin_pct",
                     "source_columns": [sell_col, cost_col],
                     "confidence": round(conf * 0.95, 3),

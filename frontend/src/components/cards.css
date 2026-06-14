@@ -1,0 +1,125 @@
+/* Cards — contenitori elevati con superfici distinte
+   Uso: <div class="card">...</div>
+        <div class="card card-hover">...</div>   (hover interattivo)
+        Sezioni interne: card-header, card-body, card-footer              */
+
+@layer components {
+
+  .card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition:
+      box-shadow   var(--duration-base) var(--ease-ui),
+      border-color var(--duration-base) var(--ease-ui);
+  }
+
+  /* Variante interattiva — per card cliccabili */
+  .card-hover {
+    cursor: pointer;
+  }
+
+  .card-hover:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-primary);
+  }
+
+  .card-hover:active {
+    box-shadow: var(--shadow-sm);
+    transform: translateY(1px);
+  }
+
+  /* Variante flat — senza ombra, solo bordo */
+  .card-flat {
+    box-shadow: none;
+    background-color: var(--color-surface-2);
+  }
+
+  /* Variante outlined + accent — selezione attiva */
+  .card-active {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-light);
+  }
+
+  /* Header della card */
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--color-divider);
+  }
+
+  .card-header-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-text);
+    line-height: 1.4;
+  }
+
+  .card-header-subtitle {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    margin-top: 0.125rem;
+  }
+
+  /* Body della card */
+  .card-body {
+    padding: 1.5rem;
+  }
+
+  /* Variante compatta */
+  .card-body-sm {
+    padding: 1rem 1.25rem;
+  }
+
+  /* Footer della card */
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--color-divider);
+    background-color: var(--color-surface-2);
+  }
+
+  /* Card stat — KPI compatta */
+  .card-stat {
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .card-stat-label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .card-stat-value {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--color-text);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+
+  .card-stat-change {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .card-stat-change.positive { color: var(--color-success); }
+  .card-stat-change.negative { color: var(--color-error); }
+  .card-stat-change.neutral  { color: var(--color-text-muted); }
+}

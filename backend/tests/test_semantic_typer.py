@@ -1,6 +1,7 @@
 import polars as pl
 from core.semantic_typer import detect_semantic_type, type_dataframe
 
+
 def test_boolean_detection():
     s = pl.Series("active", [True, False, True, None])
     assert detect_semantic_type(s) == "boolean"

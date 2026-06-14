@@ -1,0 +1,136 @@
+/* Buttons — Rounded primary + Rounded secondary
+   Uso: <button class="btn btn-primary">Label</button>
+        <button class="btn btn-secondary">Label</button>
+        <button class="btn btn-ghost">Label</button>
+        Modificatori dimensione: btn-sm | btn-md (default) | btn-lg        */
+
+@layer components {
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    font-weight: 500;
+    white-space: nowrap;
+    border-radius: var(--radius-full);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition:
+      background-color var(--duration-fast) var(--ease-ui),
+      color            var(--duration-fast) var(--ease-ui),
+      border-color     var(--duration-fast) var(--ease-ui),
+      box-shadow       var(--duration-fast) var(--ease-ui),
+      opacity          var(--duration-fast) var(--ease-ui);
+    user-select: none;
+
+    /* Dimensione default (md) */
+    padding: 0.4375rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  .btn:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  /* Dimensioni */
+  .btn-sm {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+  }
+
+  .btn-lg {
+    padding: 0.625rem 1.5rem;
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+
+  /* Primary */
+  .btn-primary {
+    background-color: var(--color-primary);
+    color: var(--color-primary-fg);
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .btn-primary:active:not(:disabled) {
+    background-color: var(--color-primary-active);
+    border-color: var(--color-primary-active);
+    box-shadow: none;
+    transform: translateY(1px);
+  }
+
+  /* Secondary */
+  .btn-secondary {
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    border-color: var(--color-border);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background-color: var(--color-surface-2);
+    border-color: var(--color-text-faint);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .btn-secondary:active:not(:disabled) {
+    background-color: var(--color-surface-offset);
+    box-shadow: none;
+    transform: translateY(1px);
+  }
+
+  /* Ghost */
+  .btn-ghost {
+    background-color: transparent;
+    color: var(--color-text-muted);
+    border-color: transparent;
+  }
+
+  .btn-ghost:hover:not(:disabled) {
+    background-color: var(--color-surface-2);
+    color: var(--color-text);
+  }
+
+  .btn-ghost:active:not(:disabled) {
+    background-color: var(--color-surface-offset);
+  }
+
+  /* Danger */
+  .btn-danger {
+    background-color: var(--color-error);
+    color: #ffffff;
+    border-color: var(--color-error);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    filter: brightness(0.9);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Icon-only — usato con una sola icona come figlio */
+  .btn-icon {
+    padding: 0.4375rem;
+    border-radius: var(--radius-lg);
+  }
+
+  .btn-icon.btn-sm { padding: 0.25rem; }
+  .btn-icon.btn-lg { padding: 0.625rem; }
+}
