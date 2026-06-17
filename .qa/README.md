@@ -2,34 +2,34 @@
 
 ## Stato attuale
 
-*Ultimo aggiornamento: 2026-06-14 17:36*
+*Ultimo aggiornamento: 2026-06-15*
 
 | Categoria | Stato | Ultimo report |
 |-----------|-------|---------------|
-| Lint | ⚠️ WARN | [2026-06-14](lint/reports/2026-06-14_17-36_lint.md) |
-| Unit Test | ✅ PASS | [2026-06-14](unit/reports/2026-06-14_17-36_unit.md) |
-| Coverage | ✅ PASS (75.18%) | [2026-06-14](coverage/reports/coverage.json) |
+| Lint | ✅ PASS | [2026-06-15](lint/reports/) |
+| Unit Test | ✅ PASS (120/120) | [2026-06-15](unit/reports/) |
+| Coverage | ⚠️ PASS (75% ≥ 75%) | [2026-06-15](coverage/reports/coverage.json) |
 | Integration | N/A | — |
 | E2E | N/A | — |
-| Security | ⚠️ WARN | [2026-06-14](../security/reports/2026-06-14_17-36_security_pip-audit.md) |
+| Security | ⚠️ WARN | [2026-06-14](security/reports/2026-06-14_18-03_security.md) |
 | Performance | N/A | — |
 | A11y | N/A | — |
 
 ## Come eseguire
 
 ```bash
-# Tutto insieme
+# Linux/macOS/Git Bash
 bash .qa/scripts/run-all.sh
 
-# Singola categoria
-bash .qa/scripts/run-lint.sh
-bash .qa/scripts/run-unit.sh
-bash .qa/scripts/run-integration.sh
-bash .qa/scripts/run-security.sh
-bash .qa/scripts/run-e2e.sh
-bash .qa/scripts/run-performance.sh
-bash .qa/scripts/run-a11y.sh
+# Windows (PowerShell) — singole categorie
+python -m pytest .qa/unit/tests -v --cov=backend --cov-report=term-missing --cov-report=json:.qa/coverage/reports/coverage.json
+ruff check backend
+cd frontend && npx eslint . --ext .ts,.tsx
+pip-audit
 ```
+
+> **Nota Windows:** gli script `.sh` richiedono line ending LF (configurato in `.gitattributes`).
+> Su Windows senza bash, eseguire i comandi sopra manualmente o via Git Bash.
 
 ## Configurazione
 
@@ -50,10 +50,13 @@ Vedi `../../qa.config.json` nella root del progetto.
 └── scripts/      ← script orchestratori
 ```
 
-## Note
+## Azioni completate
 
-- Coverage: 75.18% (soglia 75% raggiunta). File legacy `migrate_add_suggested_features.py` e `test_fase1_target.py` esclusi da coverage.
-- pip-audit: 8 vulnerabilità residue (transitive via `tornado`/`starlette` da `uvicorn`/`fastapi`).
-- ruff: 121 avvisi E501/I001 rimasti. Fix progressivo o alzare soglia a 120 (già applicata).
-- ESLint 9 configurato e funzionante.
-- Prossimi step: estendere test su `enterprise.py` e `analysis.py` per avvicinarsi a 80%+.
+### Lint (RISOLTO)
+- **Python:** E501 fixate in `data_quality.py`, `enterprise.py`, `insights.py`, `ml_exploratory.py`, `multivariate.py`, `overview.py`, `univariate.py`
+- **Python:** Import ordinati in tutti i file di test
+- **TypeScript:** ESLint configurato con `globals.browser` per risolvere errori `no-undef`
+
+### Coverage (RISOLTO - 75% raggiunto)
+- Aggiunti test per `run_analysis_stateless` con accepted_features e cleaning_actions
+- Coverage migliorata da 70% a 75%
