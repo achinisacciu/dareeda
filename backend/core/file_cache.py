@@ -8,7 +8,7 @@ In produzione sostituire con Redis + serializzazione Arrow/Parquet.
 """
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import polars as pl
 
@@ -24,9 +24,9 @@ def store(df: pl.DataFrame, filename: str) -> str:
     _evict_expired()
     file_id = str(uuid.uuid4())
     _CACHE[file_id] = {
-        "df":           df,
-        "filename":     filename,
-        "uploaded_at":  datetime.utcnow(),
+        "df": df,
+        "filename": filename,
+        "uploaded_at": datetime.now(UTC),
     }
     return file_id
 
@@ -47,7 +47,7 @@ def delete(file_id: str) -> None:
 
 def _evict_expired() -> None:
     """Rimuove le entry più vecchie del TTL."""
-    cutoff = datetime.utcnow() - timedelta(minutes=_TTL_MINUTES)
+    cutoff = datetime.now(UTC) - timedelta(minutes=_TTL_MINUTES)
     expired = [fid for fid, entry in _CACHE.items() if entry["uploaded_at"] < cutoff]
     for fid in expired:
         del _CACHE[fid]

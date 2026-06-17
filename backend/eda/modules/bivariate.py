@@ -17,40 +17,41 @@ __all__ = ["run"]
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 
-_MAX_NUMERIC_COLS   = 20   # max numeric columns to consider
-_MAX_NUM_NUM_PAIRS = 30   # max pairs returned in num×num
-_MAX_SCATTER_POINTS = 2000 # downsample for scatter plots
-_MAX_TOP_SCATTERS   = 5    # top-N scatter plots by |r|
+_MAX_NUMERIC_COLS = 20  # max numeric columns to consider
+_MAX_NUM_NUM_PAIRS = 30  # max pairs returned in num×num
+_MAX_SCATTER_POINTS = 2000  # downsample for scatter plots
+_MAX_TOP_SCATTERS = 5  # top-N scatter plots by |r|
 
-_MAX_NUM_CAT_NUM   = 5    # max numeric cols in num×cat
-_MAX_NUM_CAT_CAT   = 3    # max categorical cols in num×cat
-_MAX_NUM_CAT_PAIRS = 9    # max pairs analysed in num×cat
-_MAX_BOX_GROUPS    = 8    # max category values per box-plot
+_MAX_NUM_CAT_NUM = 5  # max numeric cols in num×cat
+_MAX_NUM_CAT_CAT = 3  # max categorical cols in num×cat
+_MAX_NUM_CAT_PAIRS = 9  # max pairs analysed in num×cat
+_MAX_BOX_GROUPS = 8  # max category values per box-plot
 
-_MAX_CAT_CAT_COLS  = 6    # max categorical columns in cat×cat
-_MAX_CAT_CAT_PAIRS = 6    # max pairs analysed in cat×cat
+_MAX_CAT_CAT_COLS = 6  # max categorical columns in cat×cat
+_MAX_CAT_CAT_PAIRS = 6  # max pairs analysed in cat×cat
 
-_CORR_HIGH         = 0.7  # threshold for "high correlation"
-_CORR_MULTICOL     = 0.85 # threshold for multicollinearity warning
-_CRAMERS_STRONG    = 0.3  # threshold for "strong association"
+_CORR_HIGH = 0.7  # threshold for "high correlation"
+_CORR_MULTICOL = 0.85  # threshold for multicollinearity warning
+_CRAMERS_STRONG = 0.3  # threshold for "strong association"
 
-_MIN_OBS_CORR      = 10   # min observations for correlation
-_MIN_OBS_GROUP      = 3    # min observations per group in box-plot
+_MIN_OBS_CORR = 10  # min observations for correlation
+_MIN_OBS_GROUP = 3  # min observations per group in box-plot
 
 # Plotly theme defaults
 _PLOT_THEME = {
-    "plot_bgcolor":  "#F5F5F5",
+    "plot_bgcolor": "#F5F5F5",
     "paper_bgcolor": "#FFFFFF",
-    "font":          dict(family="JetBrains Mono", size=11),
+    "font": dict(family="JetBrains Mono", size=11),
 }
 _HEATMAP_THEME = {
-    "plot_bgcolor":  "#FFFFFF",
+    "plot_bgcolor": "#FFFFFF",
     "paper_bgcolor": "#FFFFFF",
-    "font":          dict(family="JetBrains Mono", size=10),
+    "font": dict(family="JetBrains Mono", size=10),
 }
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
+
 
 def _fig_to_json(fig: go.Figure) -> dict[str, Any]:
     """Serialise a Plotly Figure to a JSON-compatible dict."""
@@ -58,7 +59,8 @@ def _fig_to_json(fig: go.Figure) -> dict[str, Any]:
 
 
 def _safe_pearsonr(
-    x: np.ndarray, y: np.ndarray,
+    x: np.ndarray,
+    y: np.ndarray,
 ) -> tuple[float, float]:
     """Compute Pearson r with a guard for constant arrays."""
     if np.std(x) == 0 or np.std(y) == 0:
@@ -68,7 +70,8 @@ def _safe_pearsonr(
 
 
 def _safe_spearmanr(
-    x: np.ndarray, y: np.ndarray,
+    x: np.ndarray,
+    y: np.ndarray,
 ) -> tuple[float, float]:
     """Compute Spearman rho with a guard for constant arrays."""
     if np.std(x) == 0 or np.std(y) == 0:
@@ -101,6 +104,7 @@ def _cramers_v(ct: np.ndarray) -> float:
 
 
 # ── Public entry point ─────────────────────────────────────────────────────────
+
 
 def run(
     df: pl.DataFrame,
@@ -137,6 +141,7 @@ def run(
 
 # ── Numeric × Numeric ─────────────────────────────────────────────────────────
 
+
 def _num_num(df: pl.DataFrame, num_cols: list[str]) -> dict[str, Any]:
     """Correlation analysis (Pearson + Spearman) and scatter plots."""
     if len(num_cols) < 2:
@@ -146,7 +151,7 @@ def _num_num(df: pl.DataFrame, num_cols: list[str]) -> dict[str, Any]:
     pairs: list[dict[str, Any]] = []
 
     for i, a in enumerate(cols):
-        for b in cols[i + 1:]:
+        for b in cols[i + 1 :]:
             va = df[a].drop_nulls().cast(pl.Float64)
             vb = df[b].drop_nulls().cast(pl.Float64)
             n_min = min(len(va), len(vb))
@@ -161,9 +166,9 @@ def _num_num(df: pl.DataFrame, num_cols: list[str]) -> dict[str, Any]:
             pairs.append({
                 "var_a": a,
                 "var_b": b,
-                "pearson_r":    round(pr, 4),
+                "pearson_r": round(pr, 4),
                 "spearman_rho": round(sr, 4),
-                "n":            n_min,
+                "n": n_min,
                 "note": "Alta correlazione" if abs(pr) > _CORR_HIGH else "",
             })
 
@@ -178,8 +183,8 @@ def _num_num(df: pl.DataFrame, num_cols: list[str]) -> dict[str, Any]:
     comment = _comment_num_num(pairs)
 
     return {
-        "pairs":   pairs[:_MAX_NUM_NUM_PAIRS],
-        "charts":  {"correlation_heatmap": _fig_to_json(heatmap_fig), "scatters": scatters},
+        "pairs": pairs[:_MAX_NUM_NUM_PAIRS],
+        "charts": {"correlation_heatmap": _fig_to_json(heatmap_fig), "scatters": scatters},
         "ai_comment": comment,
     }
 
@@ -198,14 +203,20 @@ def _build_correlation_heatmap(
         arr[i][j] = arr[j][i] = p["pearson_r"]
     np.fill_diagonal(arr, 1.0)
 
-    fig = go.Figure(go.Heatmap(
-        z=arr.tolist(), x=cols, y=cols,
-        colorscale=[[0, "#2B2B2B"], [0.5, "#FFFFFF"], [1, "#FF4D00"]],
-        zmid=0, zmin=-1, zmax=1,
-        text=[[f"{arr[i][j]:.2f}" for j in range(n)] for i in range(n)],
-        texttemplate="%{text}",
-        showscale=True,
-    ))
+    fig = go.Figure(
+        go.Heatmap(
+            z=arr.tolist(),
+            x=cols,
+            y=cols,
+            colorscale=[[0, "#2B2B2B"], [0.5, "#FFFFFF"], [1, "#FF4D00"]],
+            zmid=0,
+            zmin=-1,
+            zmax=1,
+            text=[[f"{arr[i][j]:.2f}" for j in range(n)] for i in range(n)],
+            texttemplate="%{text}",
+            showscale=True,
+        )
+    )
     fig.update_layout(
         title="Matrice di correlazione (Pearson)",
         margin=dict(t=50, b=100, l=100, r=20),
@@ -230,12 +241,14 @@ def _build_top_scatters(
             n = min(len(arr_a), len(arr_b), _MAX_SCATTER_POINTS)
 
             fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                x=arr_a[:n].tolist(),
-                y=arr_b[:n].tolist(),
-                mode="markers",
-                marker=dict(color="#2B2B2B", size=4, opacity=0.6),
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=arr_a[:n].tolist(),
+                    y=arr_b[:n].tolist(),
+                    mode="markers",
+                    marker=dict(color="#2B2B2B", size=4, opacity=0.6),
+                )
+            )
 
             # Trend line (robust against NaN / constant arrays)
             x_seg, y_seg = arr_a[:n], arr_b[:n]
@@ -244,16 +257,20 @@ def _build_top_scatters(
             if len(x_clean) >= 2 and np.std(x_clean) > 0:
                 m, q = np.polyfit(x_clean, y_clean, 1)
                 xr = [float(x_clean.min()), float(x_clean.max())]
-                fig.add_trace(go.Scatter(
-                    x=xr, y=[m * x + q for x in xr],
-                    mode="lines",
-                    line=dict(color="#FF4D00", width=2),
-                    name="Trend",
-                ))
+                fig.add_trace(
+                    go.Scatter(
+                        x=xr,
+                        y=[m * x + q for x in xr],
+                        mode="lines",
+                        line=dict(color="#FF4D00", width=2),
+                        name="Trend",
+                    )
+                )
 
             fig.update_layout(
                 title=f"Scatter: {a} × {b}  (r={p['pearson_r']})",
-                xaxis_title=a, yaxis_title=b,
+                xaxis_title=a,
+                yaxis_title=b,
                 margin=dict(t=50, b=50, l=60, r=20),
                 showlegend=False,
                 **_PLOT_THEME,
@@ -270,15 +287,14 @@ def _comment_num_num(pairs: list[dict[str, Any]]) -> str:
     if not pairs:
         return "Analisi bivariata numerica non disponibile (meno di 2 colonne)."
 
-    high   = [p for p in pairs if abs(p["pearson_r"]) > _CORR_HIGH]
-    multi  = [p for p in pairs if abs(p["pearson_r"]) > _CORR_MULTICOL]
+    high = [p for p in pairs if abs(p["pearson_r"]) > _CORR_HIGH]
+    multi = [p for p in pairs if abs(p["pearson_r"]) > _CORR_MULTICOL]
     parts: list[str] = []
 
     if high:
         top = high[0]
         parts.append(
-            f"La coppia con correlazione più elevata è {top['var_a']} × {top['var_b']} "
-            f"(r={top['pearson_r']})."
+            f"La coppia con correlazione più elevata è {top['var_a']} × {top['var_b']} (r={top['pearson_r']})."
         )
     if multi:
         parts.append(
@@ -292,6 +308,7 @@ def _comment_num_num(pairs: list[dict[str, Any]]) -> str:
 
 
 # ── Numeric × Categorical ─────────────────────────────────────────────────────
+
 
 def _num_cat(
     df: pl.DataFrame,
@@ -349,11 +366,11 @@ def _num_cat_one_pair(
         if len(vals) < _MIN_OBS_GROUP:
             continue
         group_stats.append({
-            "group":  g,
-            "count":  len(vals),
-            "mean":   round(float(vals.mean()), 3),
+            "group": g,
+            "count": len(vals),
+            "mean": round(float(vals.mean()), 3),
             "median": round(float(np.median(vals)), 3),
-            "std":    round(float(vals.std()), 3),
+            "std": round(float(vals.std()), 3),
         })
         group_arrays.append((g, vals))
 
@@ -363,13 +380,15 @@ def _num_cat_one_pair(
     # Box plot
     fig = go.Figure()
     for g, arr in group_arrays:
-        fig.add_trace(go.Box(
-            y=arr.tolist(),
-            name=str(g),
-            marker_color="#FF4D00",
-            line_color="#000000",
-            boxmean=False,
-        ))
+        fig.add_trace(
+            go.Box(
+                y=arr.tolist(),
+                name=str(g),
+                marker_color="#FF4D00",
+                line_color="#000000",
+                boxmean=False,
+            )
+        )
     fig.update_layout(
         title=f"{num} per {cat}",
         yaxis_title=num,
@@ -384,6 +403,7 @@ def _num_cat_one_pair(
 
 # ── Categorical × Categorical ─────────────────────────────────────────────────
 
+
 def _cat_cat(df: pl.DataFrame, cat_cols: list[str]) -> dict[str, Any]:
     """Chi-squared test and Cramér's V for categorical pairs."""
     if len(cat_cols) < 2:
@@ -395,7 +415,7 @@ def _cat_cat(df: pl.DataFrame, cat_cols: list[str]) -> dict[str, Any]:
     for i, a in enumerate(cat_cols[:_MAX_CAT_CAT_COLS]):
         if pairs_done >= _MAX_CAT_CAT_PAIRS:
             break
-        for b in cat_cols[i + 1:_MAX_CAT_CAT_COLS]:
+        for b in cat_cols[i + 1 : _MAX_CAT_CAT_COLS]:
             if pairs_done >= _MAX_CAT_CAT_PAIRS:
                 break
             try:
@@ -437,9 +457,9 @@ def _cat_cat_one_pair(
     cramers_v = _cramers_v(ct)
 
     return {
-        "var_a":      a,
-        "var_b":      b,
-        "cramers_v":  round(cramers_v, 4),
+        "var_a": a,
+        "var_b": b,
+        "cramers_v": round(cramers_v, 4),
         "chi2_pvalue": round(float(p), 4),
-        "note":       "Associazione forte" if cramers_v > _CRAMERS_STRONG else "",
+        "note": "Associazione forte" if cramers_v > _CRAMERS_STRONG else "",
     }

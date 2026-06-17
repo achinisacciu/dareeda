@@ -11,12 +11,9 @@ def maybe_sample(df: pl.DataFrame) -> tuple[pl.DataFrame, bool, int | None]:
     if n <= settings.sampling_threshold:
         return df, False, None
 
-    sampled = df.sample(
-        n=min(settings.sample_size, n),
-        shuffle=True,
-        seed=settings.random_seed
-    )
+    sampled = df.sample(n=min(settings.sample_size, n), shuffle=True, seed=settings.random_seed)
     return sampled, True, len(sampled)
+
 
 def get_sample_info(n_rows: int) -> dict:
     will_sample = n_rows > settings.sampling_threshold

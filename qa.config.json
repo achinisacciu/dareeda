@@ -5,7 +5,7 @@
     "exclude": ["node_modules", ".venv", "dist", "build", "__pycache__", ".pytest_cache", ".pytest_tmp", "artifacts"]
   },
   "coverage": {
-    "min_threshold": 80,
+    "min_threshold": 95,
     "fail_below": true
   },
   "lint": {

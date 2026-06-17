@@ -35,7 +35,7 @@ class CategoricalDetector(BaseDetector):
 
                 # Bassa cardinalità = segnale forte di categorica
                 if n_unique <= 2:
-                    score += 0.2   # potrebbe essere booleano
+                    score += 0.2  # potrebbe essere booleano
                 elif n_unique <= 10:
                     score += 0.4
                 elif n_unique <= 20:

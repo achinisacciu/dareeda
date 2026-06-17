@@ -56,8 +56,7 @@ class IDDetector(BaseDetector):
             meta["unique_ratio"] = 0.0
 
         # 3. Penalizza se numerico con pochi valori unici (non è un ID)
-        numeric_dtypes = (pl.Int8, pl.Int16, pl.Int32, pl.Int64,
-                          pl.Float32, pl.Float64)
+        numeric_dtypes = (pl.Int8, pl.Int16, pl.Int32, pl.Int64, pl.Float32, pl.Float64)
         if series.dtype in numeric_dtypes:
             try:
                 if series.n_unique() < 20:

@@ -13,7 +13,7 @@ import json
 import logging
 import math
 from collections.abc import AsyncGenerator
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import numpy as np
@@ -43,19 +43,22 @@ MAX_UPLOAD_BYTES = 100 * 1024 * 1024  # 100 MB
 # Pydantic models
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class AnalysisRequest(BaseModel):
     """Body della richiesta POST /analyze/{file_id}."""
-    target:             str | None = None
-    problem_type:       str | None = None
-    semantic_overrides: dict       = Field(default_factory=dict)
-    selected_features:  list       = Field(default_factory=list)
-    accepted_features:  list       = Field(default_factory=list)
-    cleaning_actions:   list       = Field(default_factory=list)
+
+    target: str | None = None
+    problem_type: str | None = None
+    semantic_overrides: dict = Field(default_factory=dict)
+    selected_features: list = Field(default_factory=list)
+    accepted_features: list = Field(default_factory=list)
+    cleaning_actions: list = Field(default_factory=list)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Utility: sanificazione JSON
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _sanitize_for_json(obj: Any) -> Any:
     """
@@ -90,6 +93,7 @@ def _sse_event(event: str, data: dict) -> str:
 # POST /upload
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @router.post("/upload", status_code=200)
 async def upload_file(file: UploadFile = File(...)):
     """
@@ -102,8 +106,8 @@ async def upload_file(file: UploadFile = File(...)):
         if len(file_bytes) > MAX_UPLOAD_BYTES:
             raise HTTPException(
                 status_code=413,
-                detail=f"File troppo grande: {len(file_bytes) / (1024*1024):.1f} MB. "
-                       f"Limite massimo: {MAX_UPLOAD_BYTES / (1024*1024):.0f} MB."
+                detail=f"File troppo grande: {len(file_bytes) / (1024 * 1024):.1f} MB. "
+                f"Limite massimo: {MAX_UPLOAD_BYTES / (1024 * 1024):.0f} MB.",
             )
 
         file_buffer = io.BytesIO(file_bytes)
@@ -115,31 +119,38 @@ async def upload_file(file: UploadFile = File(...)):
             df = pl.read_parquet(file_buffer)
         else:
             raise HTTPException(
-                status_code=400,
-                detail="Formato non supportato. Usa CSV o Parquet."
+                status_code=400, detail="Formato non supportato. Usa CSV o Parquet."
             )
 
         file_id = store(df, file.filename)
 
-        return JSONResponse(content={
-            "file_id":  file_id,
-            "filename": file.filename,
-            "n_rows":   df.height,
-            "n_cols":   df.width,
-            "columns":  df.columns,
-            "dtypes":   {col: str(dtype) for col, dtype in zip(df.columns, df.dtypes, strict=False)},
-        })
+        return JSONResponse(
+            content={
+                "file_id": file_id,
+                "filename": file.filename,
+                "n_rows": df.height,
+                "n_cols": df.width,
+                "columns": df.columns,
+                "dtypes": {
+                    col: str(dtype) for col, dtype in zip(df.columns, df.dtypes, strict=False)
+                },
+            }
+        )
 
     except HTTPException:
         raise
     except Exception as e:
         logger.exception("Errore durante il caricamento del file")
-        raise HTTPException(status_code=500, detail=f"Errore durante il caricamento: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Errore durante il caricamento: {str(e)}",
+        ) from e
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # POST /analyze/{file_id}  — SSE streaming
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.post("/analyze/{file_id}")
 async def stream_analysis(file_id: str, body: AnalysisRequest):
@@ -162,23 +173,25 @@ async def stream_analysis(file_id: str, body: AnalysisRequest):
     entry = get(file_id)
     if entry is None:
         raise HTTPException(
-            status_code=404,
-            detail="file_id non trovato o scaduto. Effettua nuovamente l'upload."
+            status_code=404, detail="file_id non trovato o scaduto. Effettua nuovamente l'upload."
         )
 
     context = body.model_dump()
-    df_full  = entry["df"]
+    df_full = entry["df"]
     filename = entry["filename"]
 
     async def event_generator() -> AsyncGenerator[str, None]:
         try:
             # ── Evento iniziale ──────────────────────────────────────────────
-            yield _sse_event("start", {
-                "file_id":  file_id,
-                "filename": filename,
-                "n_rows":   df_full.height,
-                "n_cols":   df_full.width,
-            })
+            yield _sse_event(
+                "start",
+                {
+                    "file_id": file_id,
+                    "filename": filename,
+                    "n_rows": df_full.height,
+                    "n_cols": df_full.width,
+                },
+            )
             await asyncio.sleep(0)
 
             # ── Preprocessing + streaming per-modulo ─────────────────────────
@@ -199,9 +212,9 @@ async def stream_analysis(file_id: str, body: AnalysisRequest):
         event_generator(),
         media_type="text/event-stream",
         headers={
-            "Cache-Control":     "no-cache",
+            "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",
-            "Connection":        "keep-alive",
+            "Connection": "keep-alive",
         },
     )
 
@@ -217,10 +230,8 @@ async def _run_orchestrator_streaming(
     loop = asyncio.get_running_loop()
 
     # ── 1. Preprocessing (campionamento, feature engineering, cleaning, semantic typing) ──
-    df, sampled, sample_n, semantic_types, groups, meta_info, fe_info = (
-        await loop.run_in_executor(
-            None, _preprocess, df_full, filename, context
-        )
+    df, sampled, sample_n, semantic_types, groups, meta_info, fe_info = await loop.run_in_executor(
+        None, _preprocess, df_full, filename, context
     )
 
     # ── 2. Emetti meta e feature_engineering ──
@@ -233,34 +244,40 @@ async def _run_orchestrator_streaming(
             if key in ("ml_exploratory", "multivariate"):
                 result = await loop.run_in_executor(
                     None,
-                    lambda f=fn, d=df, df_f=df_full, st=semantic_types, g=groups, c=context:
-                        f(df=d, df_full=df_f, semantic_types=st, groups=g, context=c),
+                    lambda f=fn, d=df, df_f=df_full, st=semantic_types, g=groups, c=context: f(
+                        df=d, df_full=df_f, semantic_types=st, groups=g, context=c
+                    ),
                 )
             else:
                 result = await loop.run_in_executor(
                     None,
-                    lambda f=fn, d=df, df_f=df_full, st=semantic_types, g=groups:
-                        f(df=d, df_full=df_f, semantic_types=st, groups=g),
+                    lambda f=fn, d=df, df_f=df_full, st=semantic_types, g=groups: f(
+                        df=d, df_full=df_f, semantic_types=st, groups=g
+                    ),
                 )
 
-            yield ("module", {
-                "module": key,
-                "label":  label,
-                "data":   result,
-            })
+            yield (
+                "module",
+                {
+                    "module": key,
+                    "label": label,
+                    "data": result,
+                },
+            )
 
         except Exception as e:
             logger.warning("Modulo %s fallito: %s", key, e)
-            yield ("module", {
-                "module": key,
-                "label":  label,
-                "data":   {"error": str(e), "skipped": True},
-            })
+            yield (
+                "module",
+                {
+                    "module": key,
+                    "label": label,
+                    "data": {"error": str(e), "skipped": True},
+                },
+            )
 
 
-def _preprocess(
-    df_full: pl.DataFrame, filename: str, context: dict
-) -> tuple:
+def _preprocess(df_full: pl.DataFrame, filename: str, context: dict) -> tuple:
     """
     Esegue il preprocessing (campionamento, feature engineering, cleaning,
     semantic typing) e restituisce i dati pronti per i moduli EDA.
@@ -268,7 +285,7 @@ def _preprocess(
     Ritorna:
       (df, sampled, sample_n, semantic_types, groups, meta_info, fe_info)
     """
-    start_time = datetime.utcnow()
+    start_time = datetime.now(UTC)
 
     # ── Campionamento ────────────────────────────────────────────────────────
     df, sampled, sample_n = maybe_sample(df_full)
@@ -280,17 +297,17 @@ def _preprocess(
             accepted_features.append(item)
         elif isinstance(item, str):
             accepted_features.append({
-                "name":           item,
-                "type":           "unknown",
+                "name": item,
+                "type": "unknown",
                 "source_columns": [],
-                "formula":        "",
-                "status":         "accepted",
+                "formula": "",
+                "status": "accepted",
             })
 
     added_cols: list[str] = []
     if accepted_features:
-        df,      added_cols = _compute_accepted_features(df,      accepted_features)
-        df_full, _          = _compute_accepted_features(df_full, accepted_features)
+        df, added_cols = _compute_accepted_features(df, accepted_features)
+        df_full, _ = _compute_accepted_features(df_full, accepted_features)
 
     # ── Cleaning ─────────────────────────────────────────────────────────────
     pre_clean_rows = len(df_full)
@@ -298,43 +315,43 @@ def _preprocess(
 
     cleaning_actions = context.get("cleaning_actions") or []
     for act in cleaning_actions:
-        df      = _apply_single_action(df,      act)
+        df = _apply_single_action(df, act)
         df_full = _apply_single_action(df_full, act)
 
     cleaning_summary = {
-        "actions":      cleaning_actions,
-        "before_rows":  pre_clean_rows,
-        "after_rows":   len(df_full),
-        "before_cols":  pre_clean_cols,
-        "after_cols":   len(df_full.columns),
+        "actions": cleaning_actions,
+        "before_rows": pre_clean_rows,
+        "after_rows": len(df_full),
+        "before_cols": pre_clean_cols,
+        "after_cols": len(df_full.columns),
         "rows_removed": pre_clean_rows - len(df_full),
         "cols_removed": pre_clean_cols - len(df_full.columns),
     }
 
     # ── Semantic typing ──────────────────────────────────────────────────────
     semantic_types = type_dataframe(df)
-    groups         = group_by_semantic(semantic_types)
+    groups = group_by_semantic(semantic_types)
 
-    runtime = max((datetime.utcnow() - start_time).total_seconds(), 0.0)
+    runtime = max((datetime.now(UTC) - start_time).total_seconds(), 0.0)
 
     # ── Risultati preprocessing ──────────────────────────────────────────────
     meta_info = {
         "dataset_filename": filename,
-        "generated_at":     datetime.utcnow().isoformat(),
-        "target":           context.get("target"),
-        "problem_type":     context.get("problem_type"),
-        "n_rows_full":      len(df_full),
-        "n_cols":           len(df_full.columns),
-        "sampled":          sampled,
-        "sample_n":         sample_n,
-        "semantic_types":   semantic_types,
-        "runtime_seconds":  runtime,
+        "generated_at": datetime.now(UTC).isoformat(),
+        "target": context.get("target"),
+        "problem_type": context.get("problem_type"),
+        "n_rows_full": len(df_full),
+        "n_cols": len(df_full.columns),
+        "sampled": sampled,
+        "sample_n": sample_n,
+        "semantic_types": semantic_types,
+        "runtime_seconds": runtime,
     }
 
     fe_info = {
         "accepted_features": accepted_features,
-        "derived_columns":   added_cols,
-        "cleaning":          cleaning_summary,
+        "derived_columns": added_cols,
+        "cleaning": cleaning_summary,
     }
 
     return df, sampled, sample_n, semantic_types, groups, meta_info, fe_info
@@ -343,6 +360,7 @@ def _preprocess(
 # ─────────────────────────────────────────────────────────────────────────────
 # DELETE /cache/{file_id}  — pulizia esplicita (opzionale)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.delete("/cache/{file_id}", status_code=200)
 async def evict_cache(file_id: str):

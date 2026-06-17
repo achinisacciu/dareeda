@@ -3,21 +3,75 @@ from semantics.base import BaseDetector
 
 DATE_KEYWORDS = [
     # Inglese
-    "date", "time", "timestamp", "datetime", "created", "updated",
-    "modified", "deleted", "day", "month", "year", "week", "hour",
-    "start", "end", "begin", "expiry", "expiration", "due", "deadline",
-    "birth", "dob", "shipped", "delivered", "ordered", "closed",
+    "date",
+    "time",
+    "timestamp",
+    "datetime",
+    "created",
+    "updated",
+    "modified",
+    "deleted",
+    "day",
+    "month",
+    "year",
+    "week",
+    "hour",
+    "start",
+    "end",
+    "begin",
+    "expiry",
+    "expiration",
+    "due",
+    "deadline",
+    "birth",
+    "dob",
+    "shipped",
+    "delivered",
+    "ordered",
+    "closed",
     # Italiano
-    "data", "ora", "giorno", "mese", "anno", "settimana",
-    "creato", "aggiornato", "inizio", "fine", "scadenza", "nascita",
+    "data",
+    "ora",
+    "giorno",
+    "mese",
+    "anno",
+    "settimana",
+    "creato",
+    "aggiornato",
+    "inizio",
+    "fine",
+    "scadenza",
+    "nascita",
     # Francese
-    "date", "heure", "jour", "mois", "annee", "année",
-    "debut", "fin", "echeance", "naissance",
+    "date",
+    "heure",
+    "jour",
+    "mois",
+    "annee",
+    "année",
+    "debut",
+    "fin",
+    "echeance",
+    "naissance",
     # Spagnolo
-    "fecha", "hora", "dia", "mes", "ano", "año",
-    "inicio", "fin", "vencimiento", "nacimiento",
+    "fecha",
+    "hora",
+    "dia",
+    "mes",
+    "ano",
+    "año",
+    "inicio",
+    "fin",
+    "vencimiento",
+    "nacimiento",
     # Tedesco
-    "datum", "zeit", "tag", "monat", "jahr", "beginn", "ende",
+    "datum",
+    "zeit",
+    "tag",
+    "monat",
+    "jahr",
+    "beginn",
+    "ende",
 ]
 
 # Pattern regex-like per rilevamento date nelle stringhe
@@ -54,8 +108,10 @@ class DateDetector(BaseDetector):
                 sample = series.drop_nulls().head(20).to_list()
                 if sample:
                     looks_like_date = sum(
-                        1 for s in sample
-                        if isinstance(s, str) and any(sep in s for sep in DATE_SEPARATORS)
+                        1
+                        for s in sample
+                        if isinstance(s, str)
+                        and any(sep in s for sep in DATE_SEPARATORS)
                         and any(c.isdigit() for c in s)
                         and len(s) >= 8
                     )

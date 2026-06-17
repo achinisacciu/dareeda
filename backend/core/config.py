@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env")
 
@@ -16,6 +17,7 @@ class Settings(BaseSettings):
     sample_size: int = 50_000
     random_seed: int = 42
     typst_bin: str = "typst"
+
 
 settings = Settings()
 settings.data_dir.mkdir(parents=True, exist_ok=True)

@@ -3,7 +3,7 @@ import json
 import platform
 import re
 import subprocess
-from datetime import datetime
+from datetime import UTC, datetime
 from importlib import metadata as importlib_metadata
 from pathlib import Path
 
@@ -118,8 +118,10 @@ def _series_unique_ratio(series: pl.Series, n_rows: int) -> float:
 def _quality_decomposition(df_full: pl.DataFrame, groups: dict, base_results: dict) -> dict:
     n_rows = len(df_full)
     n_cols = len(df_full.columns)
-    missing_global = (((base_results.get("data_quality") or {}).get("missing") or {}).get("global") or {})
-    duplicates = (((base_results.get("data_quality") or {}).get("duplicates")) or {})
+    missing_global = ((base_results.get("data_quality") or {}).get("missing") or {}).get(
+        "global"
+    ) or {}
+    duplicates = ((base_results.get("data_quality") or {}).get("duplicates")) or {}
 
     completeness = 100.0 - float(missing_global.get("pct_missing_cells") or 0.0)
     uniqueness = 100.0 - float(duplicates.get("pct_duplicate_rows") or 0.0)
@@ -131,9 +133,15 @@ def _quality_decomposition(df_full: pl.DataFrame, groups: dict, base_results: di
         series = df_full[col].cast(pl.Float64, strict=False)
         numeric_checked += len(series)
         invalid_numeric += int(series.is_nan().sum()) if hasattr(series, "is_nan") else 0
-    validity = 100.0 if numeric_checked == 0 else max(0.0, 100.0 - invalid_numeric / numeric_checked * 100.0)
+    validity = (
+        100.0
+        if numeric_checked == 0
+        else max(0.0, 100.0 - invalid_numeric / numeric_checked * 100.0)
+    )
 
-    near_constant = ((((base_results.get("data_quality") or {}).get("inconsistencies")) or {}).get("near_constant") or [])
+    near_constant = (((base_results.get("data_quality") or {}).get("inconsistencies")) or {}).get(
+        "near_constant"
+    ) or []
     consistency_penalty = min(len(near_constant) * 4.0, 30.0)
     consistency = max(0.0, 100.0 - consistency_penalty)
     accuracy = max(0.0, min(completeness, uniqueness) - 2.0)
@@ -148,12 +156,52 @@ def _quality_decomposition(df_full: pl.DataFrame, groups: dict, base_results: di
     )
 
     rows = [
-        {"dimension": "Completeness", "weight": 25, "score": _fmt_pct(completeness), "benchmark": ">95", "status": "ok" if completeness >= 95 else ("warning" if completeness >= 85 else "critical")},
-        {"dimension": "Uniqueness", "weight": 20, "score": _fmt_pct(uniqueness), "benchmark": ">99", "status": "ok" if uniqueness >= 99 else ("warning" if uniqueness >= 95 else "critical")},
-        {"dimension": "Validity", "weight": 20, "score": _fmt_pct(validity), "benchmark": ">90", "status": "ok" if validity >= 90 else ("warning" if validity >= 80 else "critical")},
-        {"dimension": "Consistency", "weight": 15, "score": _fmt_pct(consistency), "benchmark": ">85", "status": "ok" if consistency >= 85 else ("warning" if consistency >= 70 else "critical")},
-        {"dimension": "Accuracy", "weight": 10, "score": _fmt_pct(accuracy), "benchmark": ">85", "status": "ok" if accuracy >= 85 else ("warning" if accuracy >= 75 else "critical")},
-        {"dimension": "Timeliness", "weight": 10, "score": _fmt_pct(timeliness), "benchmark": ">90", "status": "ok" if timeliness >= 90 else ("warning" if timeliness >= 80 else "critical")},
+        {
+            "dimension": "Completeness",
+            "weight": 25,
+            "score": _fmt_pct(completeness),
+            "benchmark": ">95",
+            "status": "ok"
+            if completeness >= 95
+            else ("warning" if completeness >= 85 else "critical"),
+        },
+        {
+            "dimension": "Uniqueness",
+            "weight": 20,
+            "score": _fmt_pct(uniqueness),
+            "benchmark": ">99",
+            "status": "ok" if uniqueness >= 99 else ("warning" if uniqueness >= 95 else "critical"),
+        },
+        {
+            "dimension": "Validity",
+            "weight": 20,
+            "score": _fmt_pct(validity),
+            "benchmark": ">90",
+            "status": "ok" if validity >= 90 else ("warning" if validity >= 80 else "critical"),
+        },
+        {
+            "dimension": "Consistency",
+            "weight": 15,
+            "score": _fmt_pct(consistency),
+            "benchmark": ">85",
+            "status": "ok"
+            if consistency >= 85
+            else ("warning" if consistency >= 70 else "critical"),
+        },
+        {
+            "dimension": "Accuracy",
+            "weight": 10,
+            "score": _fmt_pct(accuracy),
+            "benchmark": ">85",
+            "status": "ok" if accuracy >= 85 else ("warning" if accuracy >= 75 else "critical"),
+        },
+        {
+            "dimension": "Timeliness",
+            "weight": 10,
+            "score": _fmt_pct(timeliness),
+            "benchmark": ">90",
+            "status": "ok" if timeliness >= 90 else ("warning" if timeliness >= 80 else "critical"),
+        },
     ]
     return {
         "dimensions": rows,
@@ -204,7 +252,9 @@ def _detect_pii_candidates(df_full: pl.DataFrame) -> list[dict]:
             "pii_type": matched_type,
             "confidence": round(confidence * 100, 1),
             "reason": reason,
-            "recommended_action": "pseudonymize" if matched_type in {"email", "phone", "financial", "government_id"} else "review",
+            "recommended_action": "pseudonymize"
+            if matched_type in {"email", "phone", "financial", "government_id"}
+            else "review",
         })
 
     return candidates
@@ -220,11 +270,19 @@ def _status_from_profile(col: dict) -> str:
     return "ready"
 
 
-def _build_profiling(df_full: pl.DataFrame, semantic_types: dict, groups: dict, base_results: dict, dataset, filepath: Path, pii_candidates: list[dict]) -> dict:
+def _build_profiling(
+    df_full: pl.DataFrame,
+    semantic_types: dict,
+    groups: dict,
+    base_results: dict,
+    dataset,
+    filepath: Path,
+    pii_candidates: list[dict],
+) -> dict:
     n_rows = len(df_full)
     columns = []
     pii_map = {item["column"]: item for item in pii_candidates}
-    overview_cols = ((base_results.get("overview") or {}).get("columns") or [])
+    overview_cols = (base_results.get("overview") or {}).get("columns") or []
     overview_map = {item["name"]: item for item in overview_cols}
 
     for idx, col in enumerate(df_full.columns, start=1):
@@ -240,10 +298,15 @@ def _build_profiling(df_full: pl.DataFrame, semantic_types: dict, groups: dict, 
             "storage_type": str(series.dtype),
             "n_unique": int(series.drop_nulls().n_unique()),
             "uniqueness_ratio": _series_unique_ratio(series, n_rows),
-            "pct_missing": overview_meta.get("pct_missing", _fmt_pct(series.null_count() / max(n_rows, 1) * 100)),
+            "pct_missing": overview_meta.get(
+                "pct_missing", _fmt_pct(series.null_count() / max(n_rows, 1) * 100)
+            ),
             "memory_mb": memory_mb,
             "role": overview_meta.get("role", "feature"),
-            "status": _status_from_profile({"pct_missing": overview_meta.get("pct_missing", 0), "semantic_type": semantic_types.get(col, "unknown")}),
+            "status": _status_from_profile({
+                "pct_missing": overview_meta.get("pct_missing", 0),
+                "semantic_type": semantic_types.get(col, "unknown"),
+            }),
             "pii_type": (pii_map.get(col) or {}).get("pii_type"),
         })
 
@@ -264,7 +327,12 @@ def _build_profiling(df_full: pl.DataFrame, semantic_types: dict, groups: dict, 
         cols = groups.get(key, [])
         if not cols:
             continue
-        semantic_summary.append({"category": label, "count": len(cols), "pct": _fmt_pct(len(cols) / max(len(df_full.columns), 1) * 100), "examples": ", ".join(cols[:3])})
+        semantic_summary.append({
+            "category": label,
+            "count": len(cols),
+            "pct": _fmt_pct(len(cols) / max(len(df_full.columns), 1) * 100),
+            "examples": ", ".join(cols[:3]),
+        })
 
     semantic_detection = []
     for col in columns:
@@ -287,17 +355,23 @@ def _build_profiling(df_full: pl.DataFrame, semantic_types: dict, groups: dict, 
     scatter_size = [max(item["memory_mb"] * 60, 10) for item in columns]
     scatter_text = [item["column"] for item in columns]
     scatter_color = [
-        "#E4002B" if item["pii_type"] else "#0904AE" if item["semantic_type"] == "datetime" else "#1B272F"
+        "#E4002B"
+        if item["pii_type"]
+        else "#0904AE"
+        if item["semantic_type"] == "datetime"
+        else "#1B272F"
         for item in columns
     ]
-    fig_scatter = go.Figure(go.Scatter(
-        x=scatter_x,
-        y=scatter_y,
-        mode="markers+text",
-        text=scatter_text,
-        textposition="top center",
-        marker=dict(size=scatter_size, color=scatter_color, opacity=0.72),
-    ))
+    fig_scatter = go.Figure(
+        go.Scatter(
+            x=scatter_x,
+            y=scatter_y,
+            mode="markers+text",
+            text=scatter_text,
+            textposition="top center",
+            marker=dict(size=scatter_size, color=scatter_color, opacity=0.72),
+        )
+    )
     fig_scatter.update_layout(
         title="Cardinality vs Missing",
         xaxis_title="% missing",
@@ -310,13 +384,15 @@ def _build_profiling(df_full: pl.DataFrame, semantic_types: dict, groups: dict, 
 
     treemap_labels = [item["category"] for item in semantic_summary]
     treemap_values = [item["count"] for item in semantic_summary]
-    fig_treemap = go.Figure(go.Treemap(
-        labels=treemap_labels,
-        parents=[""] * len(treemap_labels),
-        values=treemap_values,
-        textinfo="label+value+percent entry",
-        marker=dict(colors=["#E4002B", "#0904AE", "#59ADF7", "#1B272F", "#37424A"] * 3),
-    ))
+    fig_treemap = go.Figure(
+        go.Treemap(
+            labels=treemap_labels,
+            parents=[""] * len(treemap_labels),
+            values=treemap_values,
+            textinfo="label+value+percent entry",
+            marker=dict(colors=["#E4002B", "#0904AE", "#59ADF7", "#1B272F", "#37424A"] * 3),
+        )
+    )
     fig_treemap.update_layout(
         title="Semantic Types Treemap",
         paper_bgcolor="#FFFFFF",
@@ -330,7 +406,7 @@ def _build_profiling(df_full: pl.DataFrame, semantic_types: dict, groups: dict, 
             "system_of_record": filepath.name,
             "extraction_mode": "full",
             "update_frequency": "on-demand upload",
-            "last_refresh": datetime.utcnow().date().isoformat(),
+            "last_refresh": datetime.now(UTC).date().isoformat(),
             "source_owner": "DAREEDA workspace",
             "technical_contact": "n/a",
             "documentation": "generated from uploaded dataset",
@@ -340,7 +416,9 @@ def _build_profiling(df_full: pl.DataFrame, semantic_types: dict, groups: dict, 
             "n_columns": len(df_full.columns),
             "n_cells": n_rows * len(df_full.columns),
             "memory_mb": round(df_full.estimated_size("mb"), 3),
-            "disk_size_mb": round(filepath.stat().st_size / (1024 * 1024), 3) if filepath.exists() else None,
+            "disk_size_mb": round(filepath.stat().st_size / (1024 * 1024), 3)
+            if filepath.exists()
+            else None,
         },
         "semantic_summary": semantic_summary,
         "master_schema": columns,
@@ -366,7 +444,11 @@ def _class_balance(df_full: pl.DataFrame, target_col: str | None) -> dict | None
     for idx in range(len(vc)):
         label = str(vc[target_col][idx])
         count = int(vc["count"][idx])
-        rows.append({"class": label, "count": count, "pct": _fmt_pct(count / max(len(series), 1) * 100)})
+        rows.append({
+            "class": label,
+            "count": count,
+            "pct": _fmt_pct(count / max(len(series), 1) * 100),
+        })
 
     imbalance_ratio = None
     if len(rows) > 1 and rows[-1]["count"] > 0:
@@ -386,7 +468,9 @@ def _class_balance(df_full: pl.DataFrame, target_col: str | None) -> dict | None
     }
 
 
-def _leakage_risks(df_full: pl.DataFrame, semantic_types: dict, target_col: str | None) -> list[dict]:
+def _leakage_risks(
+    df_full: pl.DataFrame, semantic_types: dict, target_col: str | None
+) -> list[dict]:
     risks = []
     if not target_col:
         return risks
@@ -404,7 +488,9 @@ def _leakage_risks(df_full: pl.DataFrame, semantic_types: dict, target_col: str 
                 "evidence": "Quasi-ID o chiave tecnica",
                 "recommended_action": "exclude from modeling",
             })
-        elif stype == "datetime" and any(token in lower for token in ("updated", "closed", "resolved", "approved", "deleted")):
+        elif stype == "datetime" and any(
+            token in lower for token in ("updated", "closed", "resolved", "approved", "deleted")
+        ):
             risks.append({
                 "column": col,
                 "risk": "Post-event timestamp",
@@ -423,8 +509,18 @@ def _leakage_risks(df_full: pl.DataFrame, semantic_types: dict, target_col: str 
     return risks
 
 
-def _predictive_prep(df_full: pl.DataFrame, groups: dict, base_results: dict, target_col: str | None, problem_type: str | None, accepted_features: list[dict], semantic_types: dict) -> dict:
-    missing_per_column = ((((base_results.get("data_quality") or {}).get("missing")) or {}).get("per_column") or [])
+def _predictive_prep(
+    df_full: pl.DataFrame,
+    groups: dict,
+    base_results: dict,
+    target_col: str | None,
+    problem_type: str | None,
+    accepted_features: list[dict],
+    semantic_types: dict,
+) -> dict:
+    missing_per_column = (((base_results.get("data_quality") or {}).get("missing")) or {}).get(
+        "per_column"
+    ) or []
     missing_map = {item["variable"]: item for item in missing_per_column}
 
     feature_engineering = []
@@ -450,19 +546,39 @@ def _predictive_prep(df_full: pl.DataFrame, groups: dict, base_results: dict, ta
         strategy = "one-hot"
         if df_full[col].drop_nulls().n_unique() > 20:
             strategy = "target/frequency encoding"
-        encoding_strategy.append({"column": col, "strategy": strategy, "missing_pct": missing_map.get(col, {}).get("missing_pct", 0)})
+        encoding_strategy.append({
+            "column": col,
+            "strategy": strategy,
+            "missing_pct": missing_map.get(col, {}).get("missing_pct", 0),
+        })
     for col in groups.get("categorical_ordinal", []):
-        encoding_strategy.append({"column": col, "strategy": "ordinal encoding", "missing_pct": missing_map.get(col, {}).get("missing_pct", 0)})
+        encoding_strategy.append({
+            "column": col,
+            "strategy": "ordinal encoding",
+            "missing_pct": missing_map.get(col, {}).get("missing_pct", 0),
+        })
     for col in groups.get("boolean", []):
-        encoding_strategy.append({"column": col, "strategy": "binary cast", "missing_pct": missing_map.get(col, {}).get("missing_pct", 0)})
+        encoding_strategy.append({
+            "column": col,
+            "strategy": "binary cast",
+            "missing_pct": missing_map.get(col, {}).get("missing_pct", 0),
+        })
 
     scaling_strategy = []
     for col in groups.get("numeric_continuous", []):
         stats = (((base_results.get("univariate") or {}).get(col)) or {}).get("stats") or {}
         outlier_pct = float(stats.get("outlier_iqr_pct") or 0)
-        scaling_strategy.append({"column": col, "strategy": "RobustScaler" if outlier_pct > 5 else "StandardScaler", "outlier_pct": outlier_pct})
+        scaling_strategy.append({
+            "column": col,
+            "strategy": "RobustScaler" if outlier_pct > 5 else "StandardScaler",
+            "outlier_pct": outlier_pct,
+        })
     for col in groups.get("numeric_discrete", []):
-        scaling_strategy.append({"column": col, "strategy": "Optional scaling / leave as count", "outlier_pct": None})
+        scaling_strategy.append({
+            "column": col,
+            "strategy": "Optional scaling / leave as count",
+            "outlier_pct": None,
+        })
 
     imputation_strategy = []
     for item in missing_per_column:
@@ -470,21 +586,32 @@ def _predictive_prep(df_full: pl.DataFrame, groups: dict, base_results: dict, ta
             continue
         stype = semantic_types.get(item["variable"], "unknown")
         if stype.startswith("numeric"):
-            strategy = "median" if item["missing_pct"] < 20 else "segment-based median / evaluate drop"
+            strategy = (
+                "median" if item["missing_pct"] < 20 else "segment-based median / evaluate drop"
+            )
         elif stype.startswith("categorical") or stype == "boolean":
             strategy = "most frequent / explicit missing bucket"
         elif stype == "datetime":
             strategy = "calendar-aware imputation / flag missing"
         else:
             strategy = "explicit null token / review"
-        imputation_strategy.append({"column": item["variable"], "missing_pct": item["missing_pct"], "severity": item["severity"], "strategy": strategy})
+        imputation_strategy.append({
+            "column": item["variable"],
+            "missing_pct": item["missing_pct"],
+            "severity": item["severity"],
+            "strategy": strategy,
+        })
 
     split_strategy = {
-        "recommended": "time-based holdout" if groups.get("datetime") else ("stratified split" if problem_type == "classification" else "random split"),
+        "recommended": "time-based holdout"
+        if groups.get("datetime")
+        else ("stratified split" if problem_type == "classification" else "random split"),
         "train": 70,
         "validation": 15,
         "test": 15,
-        "notes": "Preserve chronological order." if groups.get("datetime") else "Fix random seed and stratify by target when classification.",
+        "notes": "Preserve chronological order."
+        if groups.get("datetime")
+        else "Fix random seed and stratify by target when classification.",
     }
 
     return {
@@ -506,13 +633,25 @@ def _predictive_prep(df_full: pl.DataFrame, groups: dict, base_results: dict, ta
     }
 
 
-def _fairness_analysis(df_full: pl.DataFrame, target_col: str | None, problem_type: str | None) -> dict:
+def _fairness_analysis(
+    df_full: pl.DataFrame, target_col: str | None, problem_type: str | None
+) -> dict:
     if problem_type != "classification" or not target_col or target_col not in df_full.columns:
-        return {"applicable": False, "reason": "Fairness analysis richiede una target classificativa esplicita.", "protected_attributes": [], "group_metrics": []}
+        return {
+            "applicable": False,
+            "reason": "Fairness analysis richiede una target classificativa esplicita.",
+            "protected_attributes": [],
+            "group_metrics": [],
+        }
 
     target_series = df_full[target_col].drop_nulls().cast(pl.String, strict=False)
     if target_series.n_unique() < 2 or target_series.n_unique() > 6:
-        return {"applicable": False, "reason": "Target non binaria o con cardinalita troppo alta per disparate impact automatico.", "protected_attributes": [], "group_metrics": []}
+        return {
+            "applicable": False,
+            "reason": "Target non binaria o con cardinalita troppo alta per disparate impact automatico.",
+            "protected_attributes": [],
+            "group_metrics": [],
+        }
 
     target_values = sorted(target_series.unique().to_list(), key=lambda value: str(value))
     positive_class = None
@@ -543,9 +682,13 @@ def _fairness_analysis(df_full: pl.DataFrame, target_col: str | None, problem_ty
         if attr_type == "age":
             age_series = frame[col].cast(pl.Float64, strict=False)
             bins = (
-                pl.when(age_series < 25).then(pl.lit("<25"))
-                .when(age_series < 45).then(pl.lit("25-44"))
-                .when(age_series < 65).then(pl.lit("45-64"))
+                pl
+                .when(age_series < 25)
+                .then(pl.lit("<25"))
+                .when(age_series < 45)
+                .then(pl.lit("25-44"))
+                .when(age_series < 65)
+                .then(pl.lit("45-64"))
                 .otherwise(pl.lit("65+"))
                 .alias("_protected_group")
             )
@@ -555,13 +698,22 @@ def _fairness_analysis(df_full: pl.DataFrame, target_col: str | None, problem_ty
             group_col = col
 
         rows = []
-        for value in frame[group_col].cast(pl.String, strict=False).unique().sort().head(8).to_list():
+        for value in (
+            frame[group_col].cast(pl.String, strict=False).unique().sort().head(8).to_list()
+        ):
             subgroup = frame.filter(pl.col(group_col).cast(pl.String, strict=False) == str(value))
             size = len(subgroup)
             if size < 10:
                 continue
-            positive_rate = subgroup[target_col].cast(pl.String, strict=False).eq(positive_class).sum() / max(size, 1)
-            rows.append({"attribute": col, "group": str(value), "n": size, "positive_rate": _fmt_pct(float(positive_rate) * 100)})
+            positive_rate = subgroup[target_col].cast(pl.String, strict=False).eq(
+                positive_class
+            ).sum() / max(size, 1)
+            rows.append({
+                "attribute": col,
+                "group": str(value),
+                "n": size,
+                "positive_rate": _fmt_pct(float(positive_rate) * 100),
+            })
 
         if len(rows) < 2:
             continue
@@ -570,7 +722,11 @@ def _fairness_analysis(df_full: pl.DataFrame, target_col: str | None, problem_ty
         if not rates:
             continue
         disparate_impact = round(min(rates) / max(max(rates), 1e-6), 3)
-        severity = "ok" if disparate_impact >= 0.8 else ("warning" if disparate_impact >= 0.6 else "critical")
+        severity = (
+            "ok"
+            if disparate_impact >= 0.8
+            else ("warning" if disparate_impact >= 0.6 else "critical")
+        )
         group_metrics.append({
             "attribute": col,
             "attribute_type": attr_type,
@@ -580,10 +736,20 @@ def _fairness_analysis(df_full: pl.DataFrame, target_col: str | None, problem_ty
             "groups": rows,
         })
 
-    return {"applicable": True, "positive_class": positive_class, "protected_attributes": protected, "group_metrics": group_metrics}
+    return {
+        "applicable": True,
+        "positive_class": positive_class,
+        "protected_attributes": protected,
+        "group_metrics": group_metrics,
+    }
 
 
-def _governance(df_full: pl.DataFrame, target_col: str | None, problem_type: str | None, pii_candidates: list[dict]) -> dict:
+def _governance(
+    df_full: pl.DataFrame,
+    target_col: str | None,
+    problem_type: str | None,
+    pii_candidates: list[dict],
+) -> dict:
     return {
         "pii_detection": pii_candidates,
         "fairness": _fairness_analysis(df_full, target_col, problem_type),
@@ -594,10 +760,15 @@ def _governance(df_full: pl.DataFrame, target_col: str | None, problem_type: str
         ],
         "limitations": [
             "Le inferenze di governance sono euristiche e richiedono validazione domain-driven",
-            "La fairness analysis automatica e applicabile solo con target classificativa e attributi protetti riconoscibili",
+            "La fairness analysis automatica e applicabile solo con target "
+            "classificativa e attributi protetti riconoscibili",
             "Le regole di leakage e PII detection non sostituiscono una review legale o privacy formale",
         ],
-        "disclaimer": "Output destinato a supporto decisionale tecnico. Le decisioni di business, compliance e rilascio modello richiedono validazione umana.",
+        "disclaimer": (
+            "Output destinato a supporto decisionale tecnico. "
+            "Le decisioni di business, compliance e rilascio modello "
+            "richiedono validazione umana."
+        ),
     }
 
 
@@ -608,9 +779,21 @@ def _advanced_analytics(groups: dict, base_results: dict) -> dict:
     has_numeric = bool(groups.get("numeric_continuous") or groups.get("numeric_discrete"))
 
     applicability = [
-        {"analysis": "Cohort analysis", "applicable": has_datetime and has_id, "reason": "Richiede ID entita + timestamp di evento."},
-        {"analysis": "Survival analysis", "applicable": has_datetime and has_bool, "reason": "Richiede durata/tempo e indicatore evento."},
-        {"analysis": "Time decomposition", "applicable": has_datetime and has_numeric, "reason": "Richiede almeno una serie temporale numerica."},
+        {
+            "analysis": "Cohort analysis",
+            "applicable": has_datetime and has_id,
+            "reason": "Richiede ID entita + timestamp di evento.",
+        },
+        {
+            "analysis": "Survival analysis",
+            "applicable": has_datetime and has_bool,
+            "reason": "Richiede durata/tempo e indicatore evento.",
+        },
+        {
+            "analysis": "Time decomposition",
+            "applicable": has_datetime and has_numeric,
+            "reason": "Richiede almeno una serie temporale numerica.",
+        },
     ]
 
     time_summary = None
@@ -621,7 +804,9 @@ def _advanced_analytics(groups: dict, base_results: dict) -> dict:
         if first_key and isinstance(analyses.get(first_key), dict):
             time_summary = {
                 "series": first_key,
-                "stationarity": ((analyses.get(first_key) or {}).get("stationarity") or {}).get("decision"),
+                "stationarity": ((analyses.get(first_key) or {}).get("stationarity") or {}).get(
+                    "decision"
+                ),
                 "note": (analyses.get(first_key) or {}).get("ai_comment"),
             }
 
@@ -640,79 +825,227 @@ def _owner_for_alert(alert_type: str) -> str:
     return "Analytics Lead"
 
 
-def _executive(base_results: dict, quality: dict, pii_candidates: list[dict], predictive_prep: dict, dataset, target_col: str | None, problem_type: str | None) -> dict:
-    missing = (((base_results.get("data_quality") or {}).get("missing")) or {})
-    duplicates = (((base_results.get("data_quality") or {}).get("duplicates")) or {})
-    missing_cols = sorted([item for item in (missing.get("per_column") or []) if (item.get("missing_pct") or 0) > 0], key=lambda item: item.get("missing_pct", 0), reverse=True)
+def _executive(
+    base_results: dict,
+    quality: dict,
+    pii_candidates: list[dict],
+    predictive_prep: dict,
+    dataset,
+    target_col: str | None,
+    problem_type: str | None,
+) -> dict:
+    missing = ((base_results.get("data_quality") or {}).get("missing")) or {}
+    duplicates = ((base_results.get("data_quality") or {}).get("duplicates")) or {}
+    missing_cols = sorted(
+        [item for item in (missing.get("per_column") or []) if (item.get("missing_pct") or 0) > 0],
+        key=lambda item: item.get("missing_pct", 0),
+        reverse=True,
+    )
 
     alerts = []
     for item in missing_cols[:3]:
         if item["missing_pct"] < 10:
             continue
-        alerts.append({"severity": "critical" if item["missing_pct"] >= 30 else "high", "issue": f"Missing elevato su {item['variable']}", "columns": item["variable"], "immediate_action": "imputation strategy o esclusione", "owner": "Data Engineer"})
+        alerts.append({
+            "severity": "critical" if item["missing_pct"] >= 30 else "high",
+            "issue": f"Missing elevato su {item['variable']}",
+            "columns": item["variable"],
+            "immediate_action": "imputation strategy o esclusione",
+            "owner": "Data Engineer",
+        })
     for risk in predictive_prep.get("leakage_risk_assessment") or []:
-        alerts.append({"severity": risk["severity"], "issue": risk["risk"], "columns": risk["column"], "immediate_action": risk["recommended_action"], "owner": _owner_for_alert(risk["risk"])})
+        alerts.append({
+            "severity": risk["severity"],
+            "issue": risk["risk"],
+            "columns": risk["column"],
+            "immediate_action": risk["recommended_action"],
+            "owner": _owner_for_alert(risk["risk"]),
+        })
     class_imbalance = predictive_prep.get("class_imbalance")
     if class_imbalance and class_imbalance.get("severity") in {"warning", "critical"}:
-        alerts.append({"severity": class_imbalance["severity"], "issue": "Class imbalance", "columns": class_imbalance["target"], "immediate_action": "stratified split / reweighting / resampling", "owner": "Data Scientist"})
+        alerts.append({
+            "severity": class_imbalance["severity"],
+            "issue": "Class imbalance",
+            "columns": class_imbalance["target"],
+            "immediate_action": "stratified split / reweighting / resampling",
+            "owner": "Data Scientist",
+        })
     for pii in pii_candidates[:3]:
-        alerts.append({"severity": "high", "issue": f"PII rilevata: {pii['pii_type']}", "columns": pii["column"], "immediate_action": pii["recommended_action"], "owner": "Privacy Officer"})
+        alerts.append({
+            "severity": "high",
+            "issue": f"PII rilevata: {pii['pii_type']}",
+            "columns": pii["column"],
+            "immediate_action": pii["recommended_action"],
+            "owner": "Privacy Officer",
+        })
     alerts = alerts[:8]
 
     total_score = quality["total_score"]
-    ready_for_modeling = total_score >= 80 and not any(alert["severity"] == "critical" for alert in alerts if "leakage" in alert["issue"].lower())
-    top_missing = ", ".join(item["variable"] for item in missing_cols[:3]) if missing_cols else "nessuna colonna critica"
+    has_critical_leakage = any(
+        alert["severity"] == "critical" for alert in alerts if "leakage" in alert["issue"].lower()
+    )
+    ready_for_modeling = total_score >= 80 and not has_critical_leakage
+    top_missing = (
+        ", ".join(item["variable"] for item in missing_cols[:3])
+        if missing_cols
+        else "nessuna colonna critica"
+    )
     summary = [
-        f"Il dataset {dataset.filename} contiene {base_results.get('n_rows_full', 0):,} record e {base_results.get('n_cols', 0)} feature.",
-        f"La qualita complessiva stimata e {quality['quality_band']} ({total_score}/100) con missing concentrati su {top_missing}.",
+        f"Il dataset {dataset.filename} contiene "
+        f"{base_results.get('n_rows_full', 0):,} record e {base_results.get('n_cols', 0)} feature.",
+        f"La qualita complessiva stimata e {quality['quality_band']} ({total_score}/100) "
+        f"con missing concentrati su {top_missing}.",
         f"La percentuale di righe duplicate esatte e {duplicates.get('pct_duplicate_rows', 0)}%.",
     ]
     if target_col:
-        summary.append(f"La target configurata e {target_col} ({problem_type or 'problem type non definito'}).")
+        summary.append(
+            f"La target configurata e {target_col} ({problem_type or 'problem type non definito'})."
+        )
     if alerts:
         summary.append(f"Rischio principale: {alerts[0]['issue']}.")
 
     action_items = []
     for idx, alert in enumerate(alerts[:5], start=1):
-        action_items.append({"priority": idx, "title": alert["issue"], "owner": alert["owner"], "deadline": "Immediate" if alert["severity"] == "critical" else f"Sprint {idx}", "action": alert["immediate_action"]})
+        action_items.append({
+            "priority": idx,
+            "title": alert["issue"],
+            "owner": alert["owner"],
+            "deadline": "Immediate" if alert["severity"] == "critical" else f"Sprint {idx}",
+            "action": alert["immediate_action"],
+        })
 
     return {
-        "business_context": {"project": dataset.filename, "objective": problem_type or "exploratory assessment", "stakeholder": "Data / Analytics", "expected_impact": "Da quantificare con il business owner", "timeline": "Current sprint"},
+        "business_context": {
+            "project": dataset.filename,
+            "objective": problem_type or "exploratory assessment",
+            "stakeholder": "Data / Analytics",
+            "expected_impact": "Da quantificare con il business owner",
+            "timeline": "Current sprint",
+        },
         "executive_summary": " ".join(summary),
         "key_metrics": [
-            {"metric": "Data Quality Score", "value": total_score, "benchmark": ">80", "status": "ok" if total_score >= 80 else "warning", "trend": "up"},
-            {"metric": "Completeness", "value": quality["dimensions"][0]["score"], "benchmark": ">95", "status": quality["dimensions"][0]["status"], "trend": "flat"},
-            {"metric": "Uniqueness", "value": quality["dimensions"][1]["score"], "benchmark": ">99", "status": quality["dimensions"][1]["status"], "trend": "flat"},
-            {"metric": "Validity", "value": quality["dimensions"][2]["score"], "benchmark": ">90", "status": quality["dimensions"][2]["status"], "trend": "flat"},
-            {"metric": "Consistency", "value": quality["dimensions"][3]["score"], "benchmark": ">85", "status": quality["dimensions"][3]["status"], "trend": "flat"},
-            {"metric": "Timeliness", "value": quality["dimensions"][5]["score"], "benchmark": ">90", "status": quality["dimensions"][5]["status"], "trend": "flat"},
+            {
+                "metric": "Data Quality Score",
+                "value": total_score,
+                "benchmark": ">80",
+                "status": "ok" if total_score >= 80 else "warning",
+                "trend": "up",
+            },
+            {
+                "metric": "Completeness",
+                "value": quality["dimensions"][0]["score"],
+                "benchmark": ">95",
+                "status": quality["dimensions"][0]["status"],
+                "trend": "flat",
+            },
+            {
+                "metric": "Uniqueness",
+                "value": quality["dimensions"][1]["score"],
+                "benchmark": ">99",
+                "status": quality["dimensions"][1]["status"],
+                "trend": "flat",
+            },
+            {
+                "metric": "Validity",
+                "value": quality["dimensions"][2]["score"],
+                "benchmark": ">90",
+                "status": quality["dimensions"][2]["status"],
+                "trend": "flat",
+            },
+            {
+                "metric": "Consistency",
+                "value": quality["dimensions"][3]["score"],
+                "benchmark": ">85",
+                "status": quality["dimensions"][3]["status"],
+                "trend": "flat",
+            },
+            {
+                "metric": "Timeliness",
+                "value": quality["dimensions"][5]["score"],
+                "benchmark": ">90",
+                "status": quality["dimensions"][5]["status"],
+                "trend": "flat",
+            },
         ],
         "critical_alerts": alerts,
         "decision_matrix": [
-            {"decision": "Procedere con modellazione", "status": "yes" if ready_for_modeling else "pending", "evidence": f"Quality score {total_score}/100", "confidence": 85 if ready_for_modeling else 62},
-            {"decision": "Richiedere dati aggiuntivi", "status": "pending" if missing_cols else "no", "evidence": f"{len(missing_cols)} colonne con missing", "confidence": 78 if missing_cols else 40},
-            {"decision": "Escalation privacy/compliance", "status": "pending" if pii_candidates else "no", "evidence": f"{len(pii_candidates)} colonne PII candidate", "confidence": 88 if pii_candidates else 25},
+            {
+                "decision": "Procedere con modellazione",
+                "status": "yes" if ready_for_modeling else "pending",
+                "evidence": f"Quality score {total_score}/100",
+                "confidence": 85 if ready_for_modeling else 62,
+            },
+            {
+                "decision": "Richiedere dati aggiuntivi",
+                "status": "pending" if missing_cols else "no",
+                "evidence": f"{len(missing_cols)} colonne con missing",
+                "confidence": 78 if missing_cols else 40,
+            },
+            {
+                "decision": "Escalation privacy/compliance",
+                "status": "pending" if pii_candidates else "no",
+                "evidence": f"{len(pii_candidates)} colonne PII candidate",
+                "confidence": 88 if pii_candidates else 25,
+            },
         ],
         "action_items": action_items,
-        "recommendation": {"ready_for_modeling": ready_for_modeling, "label": "Pronto con mitigazioni" if ready_for_modeling else "Non ancora pronto"},
+        "recommendation": {
+            "ready_for_modeling": ready_for_modeling,
+            "label": "Pronto con mitigazioni" if ready_for_modeling else "Non ancora pronto",
+        },
         "quality_score_decomposition": quality,
     }
 
 
-def _deliverables(dataset_hash: str | None, cleaned_hash: str | None, cleaned_relpath: str | None, sample_relpath: str | None, result_relpath: str | None, runtime_seconds: float, quality: dict, pii_candidates: list[dict], working_dir: Path) -> dict:
+def _deliverables(
+    dataset_hash: str | None,
+    cleaned_hash: str | None,
+    cleaned_relpath: str | None,
+    sample_relpath: str | None,
+    result_relpath: str | None,
+    runtime_seconds: float,
+    quality: dict,
+    pii_candidates: list[dict],
+    working_dir: Path,
+) -> dict:
     git_commit = _safe_git_commit(working_dir)
     return {
         "outputs": [
             {"name": "analysis_json", "path": result_relpath, "hash": None, "format": "json"},
-            {"name": "cleaned_export", "path": cleaned_relpath, "hash": cleaned_hash, "format": "parquet"},
+            {
+                "name": "cleaned_export",
+                "path": cleaned_relpath,
+                "hash": cleaned_hash,
+                "format": "parquet",
+            },
             {"name": "analysis_sample", "path": sample_relpath, "hash": None, "format": "parquet"},
         ],
         "validation_checklist": [
-            {"check": "Replicability", "status": True, "detail": "Analysis JSON and deterministic seed available."},
-            {"check": "Deterministic", "status": True, "detail": "Seed fixed in application settings."},
-            {"check": "Scalability", "status": True, "detail": "Sampling + full dataset metadata preserved."},
-            {"check": "Versioning", "status": bool(git_commit), "detail": git_commit or "Git hash unavailable."},
-            {"check": "Performance", "status": True, "detail": f"Runtime captured: {round(runtime_seconds, 2)} seconds."},
+            {
+                "check": "Replicability",
+                "status": True,
+                "detail": "Analysis JSON and deterministic seed available.",
+            },
+            {
+                "check": "Deterministic",
+                "status": True,
+                "detail": "Seed fixed in application settings.",
+            },
+            {
+                "check": "Scalability",
+                "status": True,
+                "detail": "Sampling + full dataset metadata preserved.",
+            },
+            {
+                "check": "Versioning",
+                "status": bool(git_commit),
+                "detail": git_commit or "Git hash unavailable.",
+            },
+            {
+                "check": "Performance",
+                "status": True,
+                "detail": f"Runtime captured: {round(runtime_seconds, 2)} seconds.",
+            },
         ],
         "approvals": [
             {"role": "Data Analyst", "status": "pending"},
@@ -723,7 +1056,7 @@ def _deliverables(dataset_hash: str | None, cleaned_hash: str | None, cleaned_re
             {"role": "QA / Peer Reviewer", "status": "pending"},
         ],
         "report_metadata": {
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
             "template_version": "EDA-Enterprise-v2.1-inspired",
             "dataset_hash": dataset_hash,
             "cleaned_dataset_hash": cleaned_hash,
@@ -741,34 +1074,87 @@ def _deliverables(dataset_hash: str | None, cleaned_hash: str | None, cleaned_re
     }
 
 
-def _front_matter(dataset, dataset_hash: str | None, runtime_seconds: float, tool_version: str, deliverables: dict) -> dict:
+def _front_matter(
+    dataset, dataset_hash: str | None, runtime_seconds: float, tool_version: str, deliverables: dict
+) -> dict:
     return {
         "cover": {
             "title": f"EDA Analysis: {dataset.filename}",
             "subtitle": "Exploratory Data Analysis & Quality Assessment",
             "version": tool_version,
-            "generated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+            "generated_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S"),
             "analyst": "DAREEDA automated enterprise workflow",
             "reviewer": "Pending review",
             "classification": "INTERNAL",
             "dataset_hash": dataset_hash,
             "runtime": f"{round(runtime_seconds, 2)} s",
         },
-        "change_log": [{"version": tool_version, "date": datetime.utcnow().strftime("%Y-%m-%d"), "author": "DAREEDA", "changes": "Generated enterprise EDA package", "approver": "Pending"}],
+        "change_log": [
+            {
+                "version": tool_version,
+                "date": datetime.now(UTC).strftime("%Y-%m-%d"),
+                "author": "DAREEDA",
+                "changes": "Generated enterprise EDA package",
+                "approver": "Pending",
+            }
+        ],
         "report_metadata": deliverables["report_metadata"],
     }
 
 
-def build_enterprise_outputs(*, df_full: pl.DataFrame, semantic_types: dict, groups: dict, base_results: dict, dataset, filepath: Path, target_col: str | None, problem_type: str | None, accepted_features: list[dict], dataset_hash: str | None, cleaned_export_relpath: str | None, cleaned_export_hash: str | None, sample_relpath: str | None, result_relpath: str | None, runtime_seconds: float, tool_version: str, working_dir: Path) -> dict:
+def build_enterprise_outputs(
+    *,
+    df_full: pl.DataFrame,
+    semantic_types: dict,
+    groups: dict,
+    base_results: dict,
+    dataset,
+    filepath: Path,
+    target_col: str | None,
+    problem_type: str | None,
+    accepted_features: list[dict],
+    dataset_hash: str | None,
+    cleaned_export_relpath: str | None,
+    cleaned_export_hash: str | None,
+    sample_relpath: str | None,
+    result_relpath: str | None,
+    runtime_seconds: float,
+    tool_version: str,
+    working_dir: Path,
+) -> dict:
     quality = _quality_decomposition(df_full, groups, base_results)
     pii_candidates = _detect_pii_candidates(df_full)
-    predictive_prep = _predictive_prep(df_full, groups, base_results, target_col, problem_type, accepted_features, semantic_types)
-    deliverables = _deliverables(dataset_hash, cleaned_export_hash, cleaned_export_relpath, sample_relpath, result_relpath, runtime_seconds, quality, pii_candidates, working_dir)
+    predictive_prep = _predictive_prep(
+        df_full, groups, base_results, target_col, problem_type, accepted_features, semantic_types
+    )
+    deliverables = _deliverables(
+        dataset_hash,
+        cleaned_export_hash,
+        cleaned_export_relpath,
+        sample_relpath,
+        result_relpath,
+        runtime_seconds,
+        quality,
+        pii_candidates,
+        working_dir,
+    )
 
     return {
-        "front_matter": _front_matter(dataset, dataset_hash, runtime_seconds, tool_version, deliverables),
-        "executive": _executive(base_results, quality, pii_candidates, predictive_prep, dataset, target_col, problem_type),
-        "profiling": _build_profiling(df_full, semantic_types, groups, base_results, dataset, filepath, pii_candidates),
+        "front_matter": _front_matter(
+            dataset, dataset_hash, runtime_seconds, tool_version, deliverables
+        ),
+        "executive": _executive(
+            base_results,
+            quality,
+            pii_candidates,
+            predictive_prep,
+            dataset,
+            target_col,
+            problem_type,
+        ),
+        "profiling": _build_profiling(
+            df_full, semantic_types, groups, base_results, dataset, filepath, pii_candidates
+        ),
         "predictive_prep": predictive_prep,
         "advanced_analytics": _advanced_analytics(groups, base_results),
         "governance": _governance(df_full, target_col, problem_type, pii_candidates),

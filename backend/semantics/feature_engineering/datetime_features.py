@@ -11,15 +11,15 @@ class DatetimeFeaturesRule:
                     "formula": f"year({d})",
                     "confidence": 0.9,
                     "status": "pending",
-                    "type": "derived_feature"
+                    "type": "derived_feature",
                 },
                 {
                     "name": f"{d}_month",
                     "formula": f"month({d})",
                     "confidence": 0.9,
                     "status": "pending",
-                    "type": "derived_feature"
-                }
+                    "type": "derived_feature",
+                },
             ])
 
         return features

@@ -3,35 +3,36 @@ import re
 import polars as pl
 
 # Soglie
-BOOL_VALUES      = {0, 1, "0", "1", "true", "false", "yes", "no", "si", "t", "f", "y", "n"}
-ID_KEYWORDS      = re.compile(r"\b(id|key|uuid|guid|code|cod|codice|pk|fk|ref|hash)\b", re.IGNORECASE)
-GEO_LAT_KW       = re.compile(r"\b(lat|latitude|latitudine)\b", re.IGNORECASE)
-GEO_LON_KW       = re.compile(r"\b(lon|lng|longitude|longitudine)\b", re.IGNORECASE)
-TEXT_MIN_AVG_LEN = 30    # media caratteri sopra cui = testo libero
-CARD_ID_RATIO    = 0.95  # unique/total sopra cui = quasi-ID
-CARD_TEXT_RATIO  = 0.50  # unique/total sopra cui = testo (se lunga)
-DISCRETE_MAX_UNQ = 30    # max unique per numerico discreto
+BOOL_VALUES = {0, 1, "0", "1", "true", "false", "yes", "no", "si", "t", "f", "y", "n"}
+ID_KEYWORDS = re.compile(r"\b(id|key|uuid|guid|code|cod|codice|pk|fk|ref|hash)\b", re.IGNORECASE)
+GEO_LAT_KW = re.compile(r"\b(lat|latitude|latitudine)\b", re.IGNORECASE)
+GEO_LON_KW = re.compile(r"\b(lon|lng|longitude|longitudine)\b", re.IGNORECASE)
+TEXT_MIN_AVG_LEN = 30  # media caratteri sopra cui = testo libero
+CARD_ID_RATIO = 0.95  # unique/total sopra cui = quasi-ID
+CARD_TEXT_RATIO = 0.50  # unique/total sopra cui = testo (se lunga)
+DISCRETE_MAX_UNQ = 30  # max unique per numerico discreto
 
 SEMANTIC_TYPES = {
     "numeric_continuous": "Numerico continuo",
-    "numeric_discrete":   "Numerico discreto",
-    "categorical_nominal":"Categorico nominale",
-    "categorical_ordinal":"Categorico ordinale",
-    "boolean":            "Booleano",
-    "datetime":           "Datetime",
-    "text":               "Testo libero",
-    "id":                 "ID / quasi-ID",
-    "geographic":         "Geografico",
-    "unknown":            "Sconosciuto",
+    "numeric_discrete": "Numerico discreto",
+    "categorical_nominal": "Categorico nominale",
+    "categorical_ordinal": "Categorico ordinale",
+    "boolean": "Booleano",
+    "datetime": "Datetime",
+    "text": "Testo libero",
+    "id": "ID / quasi-ID",
+    "geographic": "Geografico",
+    "unknown": "Sconosciuto",
 }
 
+
 def detect_semantic_type(series: pl.Series) -> str:
-    name   = series.name
-    dtype  = series.dtype
-    n      = len(series)
+    name = series.name
+    dtype = series.dtype
+    n = len(series)
     series.null_count()
-    valid  = series.drop_nulls()
-    n_unq  = valid.n_unique() if len(valid) > 0 else 0
+    valid = series.drop_nulls()
+    n_unq = valid.n_unique() if len(valid) > 0 else 0
     card_r = n_unq / n if n > 0 else 0
 
     # 1. Datetime
@@ -61,9 +62,18 @@ def detect_semantic_type(series: pl.Series) -> str:
         return "id"
 
     # 5. Numerico
-    if dtype in (pl.Int8, pl.Int16, pl.Int32, pl.Int64,
-                 pl.UInt8, pl.UInt16, pl.UInt32, pl.UInt64,
-                 pl.Float32, pl.Float64):
+    if dtype in (
+        pl.Int8,
+        pl.Int16,
+        pl.Int32,
+        pl.Int64,
+        pl.UInt8,
+        pl.UInt16,
+        pl.UInt32,
+        pl.UInt64,
+        pl.Float32,
+        pl.Float64,
+    ):
         if dtype in (pl.Float32, pl.Float64):
             return "numeric_continuous"
         if n_unq <= DISCRETE_MAX_UNQ:
@@ -105,4 +115,3 @@ def group_by_semantic(typing: dict[str, str]) -> dict[str, list[str]]:
         else:
             groups["unknown"].append(col)
     return groups
-

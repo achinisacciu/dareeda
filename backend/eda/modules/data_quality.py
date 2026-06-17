@@ -99,7 +99,10 @@ def _stringify_example(value: Any) -> str:
 
 def _result_sentence_drop_column(column: str, n_cols: int) -> str:
     next_cols = max(n_cols - 1, 0)
-    return f"La colonna `{column}` verrà rimossa dal dataset usato nella nuova analisi. Colonne stimate: {n_cols} -> {next_cols}."
+    return (
+        f"La colonna `{column}` verrà rimossa dal dataset usato nella nuova analisi. "
+        f"Colonne stimate: {n_cols} -> {next_cols}."
+    )
 
 
 def _standardize_issues(
@@ -144,7 +147,10 @@ def _standardize_issues(
                 "supported": True,
                 "summary": "Mantieni solo la prima occorrenza di ogni riga identica.",
                 "action_label": "Rimuovi righe duplicate esatte",
-                "result": f"Saranno rimosse {n_dup} righe duplicate. Righe stimate: {n_rows} -> {max(n_rows - n_dup, 0)}.",
+                "result": (
+                    f"Saranno rimosse {n_dup} righe duplicate. "
+                    f"Righe stimate: {n_rows} -> {max(n_rows - n_dup, 0)}."
+                ),
                 "impact": {
                     "rows_before": n_rows,
                     "rows_after": max(n_rows - n_dup, 0),
@@ -168,13 +174,20 @@ def _standardize_issues(
 
     # Inconsistenze / esclusione colonne
     near_constant_lookup = {
-        c.get("variable"): c for c in (inconsistencies.get("near_constant") or []) if c.get("variable")
+        c.get("variable"): c
+        for c in (inconsistencies.get("near_constant") or [])
+        if c.get("variable")
     }
     for c in inconsistencies.get("candidates_exclusion") or []:
         column = c.get("variable")
         reason = c.get("reason") or ""
         sev = "medium"
-        if "Missing" in reason or "eccessivo" in reason or "Costante" in reason or "Quasi" in reason:
+        if (
+            "Missing" in reason
+            or "eccessivo" in reason
+            or "Costante" in reason
+            or "Quasi" in reason
+        ):
             sev = "high" if "Missing" in reason or "eccessivo" in reason else "medium"
         nc = near_constant_lookup.get(column) or {}
         details = [reason]
@@ -250,7 +263,10 @@ def _standardize_issues(
             },
             "suggestion": "Convertire questi token in `null` per rendere espliciti i missing.",
             "detection": {
-                "summary": f"Nella colonna `{column}` sono stati trovati {item.get('count')} valori testuali che rappresentano missing.",
+                "summary": (
+                    f"Nella colonna `{column}` sono stati trovati "
+                    f"{item.get('count')} valori testuali che rappresentano missing."
+                ),
                 "details": f"Token rilevati: {', '.join(item.get('tokens_display') or [])}.",
                 "method": {
                     "type": "exact_token_match",
@@ -262,7 +278,10 @@ def _standardize_issues(
                 "supported": True,
                 "summary": "Sostituisci questi token con `null` senza alterare la struttura del dataset.",
                 "action_label": f"Converti token missing in `null` su `{column}`",
-                "result": f"Saranno convertite {item.get('count')} celle in `null`. Dimensioni dataset invariate: {n_rows} righe, {n_cols} colonne.",
+                "result": (
+                    f"Saranno convertite {item.get('count')} celle in `null`. "
+                    f"Dimensioni dataset invariate: {n_rows} righe, {n_cols} colonne."
+                ),
                 "impact": {
                     "rows_before": n_rows,
                     "rows_after": n_rows,
@@ -278,9 +297,7 @@ def _standardize_issues(
             },
             "preview": {
                 "type": "before_after",
-                "examples": [
-                    {"before": ex, "after": None} for ex in (item.get("examples") or [])
-                ],
+                "examples": [{"before": ex, "after": None} for ex in (item.get("examples") or [])],
             },
             "action": {
                 "type": "replace_values",
@@ -310,7 +327,10 @@ def _standardize_issues(
             },
             "suggestion": "Ripulire gli spazi iniziali/finali per evitare duplicati logici o categorie incoerenti.",
             "detection": {
-                "summary": f"La colonna `{column}` contiene {item.get('count')} celle con spazi iniziali o finali.",
+                "summary": (
+                    f"La colonna `{column}` contiene "
+                    f"{item.get('count')} celle con spazi iniziali o finali."
+                ),
                 "details": "Vengono rilevati solo spazi ai bordi della stringa; nessuna sostituzione interna.",
                 "method": {
                     "type": "trim_whitespace",
@@ -322,7 +342,10 @@ def _standardize_issues(
                 "supported": True,
                 "summary": "Rimuovi gli spazi iniziali/finali lasciando invariato il contenuto centrale.",
                 "action_label": f"Trim whitespace su `{column}`",
-                "result": f"Verranno normalizzate {item.get('count')} celle. Dimensioni dataset invariate: {n_rows} righe, {n_cols} colonne.",
+                "result": (
+                    f"Verranno normalizzate {item.get('count')} celle. "
+                    f"Dimensioni dataset invariate: {n_rows} righe, {n_cols} colonne."
+                ),
                 "impact": {
                     "rows_before": n_rows,
                     "rows_after": n_rows,
@@ -374,7 +397,10 @@ def _standardize_issues(
             },
             "proposal": {
                 "supported": False,
-                "summary": "Nessuna azione automatica proposta: serve una scelta consapevole sul significato di queste righe.",
+                "summary": (
+                    "Nessuna azione automatica proposta: serve una scelta "
+                    "consapevole sul significato di queste righe."
+                ),
                 "action_label": "Solo revisione",
                 "result": "Questa rilevazione non modifica il dataset: è un promemoria di revisione.",
                 "impact": {
@@ -424,11 +450,16 @@ def _build_cleaning_summary(issues: list[dict], *, n_rows: int, n_cols: int) -> 
 
 # ── Missing ─────────────────────────────────────────────────────────────────
 
+
 def _severity(pct: float) -> str:
-    if pct == 0:         return "none"
-    if pct <= 5:         return "low"
-    if pct <= 20:        return "moderate"
-    if pct <= 40:        return "high"
+    if pct == 0:
+        return "none"
+    if pct <= 5:
+        return "low"
+    if pct <= 20:
+        return "moderate"
+    if pct <= 40:
+        return "high"
     return "critical"
 
 
@@ -449,10 +480,10 @@ def _analyze_missing(df: pl.DataFrame) -> dict:
             rows_with_missing_mask = rows_with_missing_mask | s.is_null()
         pct = round(n_null / n_rows * 100, 2) if n_rows > 0 else 0.0
         per_col.append({
-            "variable":    col,
+            "variable": col,
             "missing_count": int(n_null),
-            "missing_pct":   pct,
-            "severity":      _severity(pct),
+            "missing_pct": pct,
+            "severity": _severity(pct),
         })
 
     rows_with_missing = int(rows_with_missing_mask.sum())
@@ -462,26 +493,35 @@ def _analyze_missing(df: pl.DataFrame) -> dict:
     # Missing per row distribution (usa campione per rapidità)
     sample = df.head(min(5000, n_rows))
     missing_per_row = pl.Series([
-        sum(1 for col in sample.columns if sample[col][i] is None)
-        for i in range(len(sample))
+        sum(1 for col in sample.columns if sample[col][i] is None) for i in range(len(sample))
     ])
 
     # Chart: missing per colonna (solo colonne con missing > 0)
     cols_with_missing = [c for c in per_col if c["missing_count"] > 0]
     cols_with_missing.sort(key=lambda x: x["missing_pct"], reverse=True)
 
-    colors_map = {"none":"#000000","low":"#2B2B2B","moderate":"#FF4D00","high":"#FF4D00","critical":"#B33600"}
-    fig_missing = go.Figure(go.Bar(
-        x=[c["variable"] for c in cols_with_missing],
-        y=[c["missing_pct"] for c in cols_with_missing],
-        marker_color=[colors_map[c["severity"]] for c in cols_with_missing],
-        text=[f'{c["missing_pct"]}%' for c in cols_with_missing],
-        textposition="outside",
-    ))
+    colors_map = {
+        "none": "#000000",
+        "low": "#2B2B2B",
+        "moderate": "#FF4D00",
+        "high": "#FF4D00",
+        "critical": "#B33600",
+    }
+    fig_missing = go.Figure(
+        go.Bar(
+            x=[c["variable"] for c in cols_with_missing],
+            y=[c["missing_pct"] for c in cols_with_missing],
+            marker_color=[colors_map[c["severity"]] for c in cols_with_missing],
+            text=[f"{c['missing_pct']}%" for c in cols_with_missing],
+            textposition="outside",
+        )
+    )
     fig_missing.update_layout(
         title="% Valori mancanti per variabile",
-        xaxis_title="Variabile", yaxis_title="% Missing",
-        plot_bgcolor="#F5F5F5", paper_bgcolor="#FFFFFF",
+        xaxis_title="Variabile",
+        yaxis_title="% Missing",
+        plot_bgcolor="#F5F5F5",
+        paper_bgcolor="#FFFFFF",
         font=dict(family="JetBrains Mono", size=11),
         margin=dict(t=50, b=120, l=50, r=20),
         xaxis=dict(tickangle=-45),
@@ -489,24 +529,27 @@ def _analyze_missing(df: pl.DataFrame) -> dict:
 
     # Heatmap missing su dataset completo.
     # Non campioniamo le righe: l'utente deve vedere i pattern reali di missing.
-    hm_cols = [c["variable"] for c in cols_with_missing[:30]] if cols_with_missing else df.columns[:30]
-    hm_matrix = (
-        df.select([
-            pl.col(col).is_null().cast(pl.Int8).alias(col)
-            for col in hm_cols
-        ]).to_numpy()
-        if hm_cols else np.empty((0, 0), dtype=np.int8)
+    hm_cols = (
+        [c["variable"] for c in cols_with_missing[:30]] if cols_with_missing else df.columns[:30]
     )
-    fig_heatmap = go.Figure(go.Heatmap(
-        z=hm_matrix.tolist(),
-        x=hm_cols,
-        colorscale=[[0, "#F5F5F5"], [1, "#FF4D00"]],
-        showscale=True,
-        colorbar=dict(title="Missing"),
-    ))
+    hm_matrix = (
+        df.select([pl.col(col).is_null().cast(pl.Int8).alias(col) for col in hm_cols]).to_numpy()
+        if hm_cols
+        else np.empty((0, 0), dtype=np.int8)
+    )
+    fig_heatmap = go.Figure(
+        go.Heatmap(
+            z=hm_matrix.tolist(),
+            x=hm_cols,
+            colorscale=[[0, "#F5F5F5"], [1, "#FF4D00"]],
+            showscale=True,
+            colorbar=dict(title="Missing"),
+        )
+    )
     fig_heatmap.update_layout(
         title="Heatmap valori mancanti",
-        plot_bgcolor="#FFFFFF", paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+        paper_bgcolor="#FFFFFF",
         font=dict(family="JetBrains Mono", size=10),
         margin=dict(t=50, b=100, l=120, r=20),
         xaxis=dict(tickangle=-45),
@@ -522,19 +565,23 @@ def _analyze_missing(df: pl.DataFrame) -> dict:
 
     return {
         "global": {
-            "n_rows":              n_rows,
-            "n_cols":              n_cols,
-            "n_cells":             n_cells,
-            "rows_with_missing":   rows_with_missing,
+            "n_rows": n_rows,
+            "n_cols": n_cols,
+            "n_cells": n_cells,
+            "rows_with_missing": rows_with_missing,
             "pct_rows_with_missing": pct_rows,
             "total_missing_cells": int(total_missing),
-            "pct_missing_cells":   pct_cells,
-            "mean_missing_per_row":   round(float(missing_per_row.mean()), 2) if len(missing_per_row) > 0 else 0.0,
-            "median_missing_per_row": round(float(missing_per_row.median()), 2) if len(missing_per_row) > 0 else 0.0,
+            "pct_missing_cells": pct_cells,
+            "mean_missing_per_row": round(float(missing_per_row.mean()), 2)
+            if len(missing_per_row) > 0
+            else 0.0,
+            "median_missing_per_row": round(float(missing_per_row.median()), 2)
+            if len(missing_per_row) > 0
+            else 0.0,
         },
         "per_column": per_col,
         "charts": {
-            "missing_bar":  _fig(fig_missing) if cols_with_missing else None,
+            "missing_bar": _fig(fig_missing) if cols_with_missing else None,
             "missing_heatmap": _fig(fig_heatmap) if cols_with_missing else None,
             "missing_cooccurrence": pattern_charts.get("missing_cooccurrence"),
             "missing_pattern_correlation": pattern_charts.get("missing_pattern_correlation"),
@@ -547,18 +594,35 @@ def _analyze_missing(df: pl.DataFrame) -> dict:
 def _missing_comment(pct_cells: float, critical: list, high: list) -> str:
     parts = []
     if pct_cells == 0:
-        parts.append("Il dataset non presenta valori mancanti. La qualità del dato è ottima sotto questo aspetto.")
+        parts.append(
+            "Il dataset non presenta valori mancanti. La qualità del dato è ottima sotto questo aspetto."
+        )
     elif pct_cells < 5:
-        parts.append(f"Il dataset presenta una bassa percentuale di valori mancanti ({pct_cells:.1f}%). L'impatto sulla modellazione è limitato.")
+        parts.append(
+            f"Il dataset presenta una bassa percentuale di valori mancanti ({pct_cells:.1f}%). "
+            "L'impatto sulla modellazione è limitato."
+        )
     elif pct_cells < 20:
-        parts.append(f"Il dataset presenta una percentuale moderata di valori mancanti ({pct_cells:.1f}%). È consigliabile valutare strategie di imputazione.")
+        parts.append(
+            f"Il dataset presenta una percentuale moderata di valori mancanti ({pct_cells:.1f}%). "
+            "È consigliabile valutare strategie di imputazione."
+        )
     else:
-        parts.append(f"Il dataset presenta un'alta percentuale di valori mancanti ({pct_cells:.1f}%). È necessaria un'analisi approfondita prima della modellazione.")
+        parts.append(
+            f"Il dataset presenta un'alta percentuale di valori mancanti ({pct_cells:.1f}%). "
+            "È necessaria un'analisi approfondita prima della modellazione."
+        )
 
     if critical:
-        parts.append(f"Le colonne con severità critica (>40% missing) sono: {', '.join(critical[:5])}. Si consiglia di valutarne l'eliminazione o l'imputazione specifica.")
+        parts.append(
+            f"Le colonne con severità critica (>40% missing) sono: {', '.join(critical[:5])}. "
+            "Si consiglia di valutarne l'eliminazione o l'imputazione specifica."
+        )
     if high:
-        parts.append(f"Le colonne con alta presenza di missing (20-40%) sono: {', '.join(high[:5])}. Investigare possibili cause operative.")
+        parts.append(
+            f"Le colonne con alta presenza di missing (20-40%) sono: {', '.join(high[:5])}. "
+            "Investigare possibili cause operative."
+        )
     return " ".join(parts)
 
 
@@ -572,8 +636,7 @@ def _missing_pattern_charts(df: pl.DataFrame, cols_with_missing: list[dict]) -> 
         }
 
     matrix = df.select([
-        pl.col(col).is_null().cast(pl.Int8).alias(col)
-        for col in target_columns
+        pl.col(col).is_null().cast(pl.Int8).alias(col) for col in target_columns
     ]).to_numpy()
     if matrix.shape[0] < 2:
         return {
@@ -584,18 +647,20 @@ def _missing_pattern_charts(df: pl.DataFrame, cols_with_missing: list[dict]) -> 
 
     absolute = matrix.T @ matrix
     max_abs = int(absolute.max()) if absolute.size else 0
-    fig_abs = go.Figure(go.Heatmap(
-        z=absolute.tolist(),
-        x=target_columns,
-        y=target_columns,
-        colorscale=[[0, "#FFFFFF"], [0.5, "#59ADF7"], [1, "#E4002B"]],
-        zmin=0,
-        zmax=max_abs if max_abs > 0 else 1,
-        text=absolute.tolist(),
-        texttemplate="%{text}",
-        hovertemplate="<b>%{x}</b> + <b>%{y}</b><br>Righe con missing congiunto: %{z}<extra></extra>",
-        showscale=True,
-    ))
+    fig_abs = go.Figure(
+        go.Heatmap(
+            z=absolute.tolist(),
+            x=target_columns,
+            y=target_columns,
+            colorscale=[[0, "#FFFFFF"], [0.5, "#59ADF7"], [1, "#E4002B"]],
+            zmin=0,
+            zmax=max_abs if max_abs > 0 else 1,
+            text=absolute.tolist(),
+            texttemplate="%{text}",
+            hovertemplate="<b>%{x}</b> + <b>%{y}</b><br>Righe con missing congiunto: %{z}<extra></extra>",
+            showscale=True,
+        )
+    )
     fig_abs.update_layout(
         title="Matrice co-occorrenza missing",
         plot_bgcolor="#FFFFFF",
@@ -609,19 +674,21 @@ def _missing_pattern_charts(df: pl.DataFrame, cols_with_missing: list[dict]) -> 
     corr = np.corrcoef(matrix, rowvar=False)
     corr = np.nan_to_num(corr, nan=0.0)
     np.fill_diagonal(corr, 1.0)
-    fig_corr = go.Figure(go.Heatmap(
-        z=corr.tolist(),
-        x=target_columns,
-        y=target_columns,
-        colorscale=[[0, "#0904AE"], [0.5, "#FFFFFF"], [1, "#E4002B"]],
-        zmin=-1,
-        zmax=1,
-        zmid=0,
-        text=[[f"{value:.2f}" for value in row] for row in corr.tolist()],
-        texttemplate="%{text}",
-        hovertemplate="<b>%{x}</b> vs <b>%{y}</b><br>Correlazione pattern missing: %{z:.2f}<extra></extra>",
-        showscale=True,
-    ))
+    fig_corr = go.Figure(
+        go.Heatmap(
+            z=corr.tolist(),
+            x=target_columns,
+            y=target_columns,
+            colorscale=[[0, "#0904AE"], [0.5, "#FFFFFF"], [1, "#E4002B"]],
+            zmin=-1,
+            zmax=1,
+            zmid=0,
+            text=[[f"{value:.2f}" for value in row] for row in corr.tolist()],
+            texttemplate="%{text}",
+            hovertemplate="<b>%{x}</b> vs <b>%{y}</b><br>Correlazione pattern missing: %{z:.2f}<extra></extra>",
+            showscale=True,
+        )
+    )
     fig_corr.update_layout(
         title="Correlazione pattern missing",
         plot_bgcolor="#FFFFFF",
@@ -662,6 +729,7 @@ def _missing_pattern_charts(df: pl.DataFrame, cols_with_missing: list[dict]) -> 
 
 # ── Duplicati ───────────────────────────────────────────────────────────────
 
+
 def _analyze_duplicates(df: pl.DataFrame) -> dict:
     n_rows = len(df)
     n_dup = int(df.is_duplicated().sum())
@@ -671,21 +739,30 @@ def _analyze_duplicates(df: pl.DataFrame) -> dict:
     if pct_dup == 0:
         comment = "Nessun duplicato esatto rilevato. Il dataset è privo di righe identiche."
     elif pct_dup < 1:
-        comment = f"Presenza trascurabile di duplicati ({pct_dup:.2f}%). Impatto sulla qualità minimo."
+        comment = (
+            f"Presenza trascurabile di duplicati ({pct_dup:.2f}%). Impatto sulla qualità minimo."
+        )
     elif pct_dup < 5:
-        comment = f"Presenza lieve di duplicati ({pct_dup:.1f}%). Si consiglia di investigare la causa prima di procedere."
+        comment = (
+            f"Presenza lieve di duplicati ({pct_dup:.1f}%). "
+            "Si consiglia di investigare la causa prima di procedere."
+        )
     else:
-        comment = f"Presenza significativa di duplicati ({pct_dup:.1f}%). La rimozione è fortemente consigliata prima della modellazione."
+        comment = (
+            f"Presenza significativa di duplicati ({pct_dup:.1f}%). "
+            "La rimozione è fortemente consigliata prima della modellazione."
+        )
 
     return {
-        "n_duplicate_rows":   n_dup,
+        "n_duplicate_rows": n_dup,
         "pct_duplicate_rows": pct_dup,
-        "n_unique_rows":      n_unique_rows,
-        "ai_comment":         comment,
+        "n_unique_rows": n_unique_rows,
+        "ai_comment": comment,
     }
 
 
 # ── Inconsistenze ───────────────────────────────────────────────────────────
+
 
 def _analyze_inconsistencies(df: pl.DataFrame, semantic_types: dict) -> dict:
     near_constant = []
@@ -696,21 +773,33 @@ def _analyze_inconsistencies(df: pl.DataFrame, semantic_types: dict) -> dict:
         if len(s) == 0:
             continue
         n_unq = s.n_unique()
-        dominant_share = round(float(s.value_counts(sort=True).head(1)["count"][0]) / len(s) * 100, 2) if n_unq > 0 else 100.0
+        dominant_share = (
+            round(float(s.value_counts(sort=True).head(1)["count"][0]) / len(s) * 100, 2)
+            if n_unq > 0
+            else 100.0
+        )
         flag = None
         if n_unq == 1:
             flag = "costante"
-            candidates_exclusion.append({"variable": col, "reason": "Costante (zero varianza)", "evidence": f"unico valore: {s[0]}"})
+            candidates_exclusion.append({
+                "variable": col,
+                "reason": "Costante (zero varianza)",
+                "evidence": f"unico valore: {s[0]}",
+            })
         elif dominant_share >= 99 and n_unq <= 2:
             flag = "quasi-costante"
-            candidates_exclusion.append({"variable": col, "reason": "Quasi-costante (≥99% stesso valore)", "evidence": f"{dominant_share}% valore dominante"})
+            candidates_exclusion.append({
+                "variable": col,
+                "reason": "Quasi-costante (≥99% stesso valore)",
+                "evidence": f"{dominant_share}% valore dominante",
+            })
 
         if flag:
             near_constant.append({
-                "variable":       col,
-                "unique_count":   n_unq,
+                "variable": col,
+                "unique_count": n_unq,
                 "dominant_share": dominant_share,
-                "flag":           flag,
+                "flag": flag,
             })
 
     # Colonne con troppi missing
@@ -722,13 +811,13 @@ def _analyze_inconsistencies(df: pl.DataFrame, semantic_types: dict) -> dict:
             if not already:
                 candidates_exclusion.append({
                     "variable": col,
-                    "reason":   "Missing eccessivo (>60%)",
+                    "reason": "Missing eccessivo (>60%)",
                     "evidence": f"{pct_m:.1f}% valori mancanti",
                 })
 
     return {
-        "near_constant":         near_constant,
-        "candidates_exclusion":  candidates_exclusion,
+        "near_constant": near_constant,
+        "candidates_exclusion": candidates_exclusion,
     }
 
 
@@ -750,12 +839,7 @@ def _analyze_text_cleaning(df: pl.DataFrame) -> dict:
         if missing_count > 0:
             normalized_tokens = normalized.filter(missing_mask).unique().drop_nulls().to_list()
             normalized_tokens = sorted(str(tok) for tok in normalized_tokens)
-            raw_examples = (
-                s.filter(missing_mask)
-                .unique()
-                .head(5)
-                .to_list()
-            )
+            raw_examples = s.filter(missing_mask).unique().head(5).to_list()
             pct = round(missing_count / n_rows * 100, 2) if n_rows > 0 else 0.0
             masked_missing.append({
                 "column": col,
@@ -770,9 +854,7 @@ def _analyze_text_cleaning(df: pl.DataFrame) -> dict:
         trimmed = s.str.strip_chars()
         trimmed_norm = trimmed.str.to_lowercase()
         whitespace_mask = (
-            s.is_not_null()
-            & (s != trimmed)
-            & ~trimmed_norm.is_in(list(MASKED_MISSING_TOKENS))
+            s.is_not_null() & (s != trimmed) & ~trimmed_norm.is_in(list(MASKED_MISSING_TOKENS))
         )
         whitespace_count = int(whitespace_mask.sum())
 
@@ -799,27 +881,33 @@ def _analyze_text_cleaning(df: pl.DataFrame) -> dict:
 
 # ── Overlap anomalie ─────────────────────────────────────────────────────────
 
+
 def _anomaly_overlap(df: pl.DataFrame) -> dict:
     n_rows = len(df)
     dup_mask = df.is_duplicated()
-    miss_mask = pl.Series([any(df[col][i] is None for col in df.columns) for i in range(min(n_rows, 10_000))])
+    miss_mask = pl.Series([
+        any(df[col][i] is None for col in df.columns) for i in range(min(n_rows, 10_000))
+    ])
 
     # Solo sui primi 10k per performance
     n_sample = min(n_rows, 10_000)
-    dup_s  = dup_mask[:n_sample]
+    dup_s = dup_mask[:n_sample]
     miss_s = miss_mask
 
-    def cnt(mask) -> int: return int(mask.sum())
-    def pct(n) -> float:  return round(n / n_sample * 100, 2)
+    def cnt(mask) -> int:
+        return int(mask.sum())
+
+    def pct(n) -> float:
+        return round(n / n_sample * 100, 2)
 
     n_miss_only = cnt(miss_s & ~dup_s)
-    n_dup_only  = cnt(dup_s & ~miss_s)
-    n_both      = cnt(miss_s & dup_s)
-    n_none      = n_sample - n_miss_only - n_dup_only - n_both
+    n_dup_only = cnt(dup_s & ~miss_s)
+    n_both = cnt(miss_s & dup_s)
+    n_none = n_sample - n_miss_only - n_dup_only - n_both
 
     return [
-        {"pattern": "Solo missing",        "count": n_miss_only, "pct_rows": pct(n_miss_only)},
-        {"pattern": "Solo duplicato",       "count": n_dup_only,  "pct_rows": pct(n_dup_only)},
-        {"pattern": "Missing + Duplicato",  "count": n_both,      "pct_rows": pct(n_both)},
-        {"pattern": "Nessuna anomalia",     "count": n_none,      "pct_rows": pct(n_none)},
+        {"pattern": "Solo missing", "count": n_miss_only, "pct_rows": pct(n_miss_only)},
+        {"pattern": "Solo duplicato", "count": n_dup_only, "pct_rows": pct(n_dup_only)},
+        {"pattern": "Missing + Duplicato", "count": n_both, "pct_rows": pct(n_both)},
+        {"pattern": "Nessuna anomalia", "count": n_none, "pct_rows": pct(n_none)},
     ]

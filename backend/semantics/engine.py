@@ -22,7 +22,7 @@ def analyze_dataset(df):
         results[col] = {
             "semantic_type": best["semantic_type"] if best else "unknown",
             "confidence": best["confidence"] if best else 0.0,
-            "candidates": col_results
+            "candidates": col_results,
         }
 
     # Feature Engineering
@@ -35,7 +35,4 @@ def analyze_dataset(df):
         except Exception:
             pass
 
-    return {
-        "columns": results,
-        "suggested_features": suggested_features
-    }
+    return {"columns": results, "suggested_features": suggested_features}

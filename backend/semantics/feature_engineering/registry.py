@@ -4,8 +4,8 @@ from .ratios import RatioRule
 from .revenue import RevenueRule
 
 FEATURE_RULES = [
-    RevenueRule(),    # price × quantity → ricavo
-    MarginRule(),     # sell_price - cost → margine
-    RatioRule(),      # quantity / quantity → rapporto
+    RevenueRule(),  # price × quantity → ricavo
+    MarginRule(),  # sell_price - cost → margine
+    RatioRule(),  # quantity / quantity → rapporto
     DatetimeFeaturesRule(),
 ]

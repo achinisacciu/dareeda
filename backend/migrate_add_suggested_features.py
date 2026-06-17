@@ -9,6 +9,7 @@ from pathlib import Path
 # Percorso del database SQLite
 DB_PATH = Path(__file__).parent / "projects" / "dareeda.db"
 
+
 def migrate():
     if not DB_PATH.exists():
         print(f"❌ Database non trovato: {DB_PATH}")
@@ -31,6 +32,7 @@ def migrate():
     conn.commit()
     conn.close()
     print("✅ Colonna 'suggested_features' aggiunta con successo alla tabella 'datasets'.")
+
 
 if __name__ == "__main__":
     migrate()

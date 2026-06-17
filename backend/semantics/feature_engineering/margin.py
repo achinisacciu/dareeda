@@ -5,20 +5,41 @@ Rileva coppie (prezzo_vendita, costo) e (prezzo, sconto) nel dataset.
 
 # Keyword che indicano prezzo di vendita
 SELLING_PRICE_HINTS = [
-    "selling", "sale", "sell", "vendita", "list", "retail",
-    "price", "prezzo", "prix", "precio",
+    "selling",
+    "sale",
+    "sell",
+    "vendita",
+    "list",
+    "retail",
+    "price",
+    "prezzo",
+    "prix",
+    "precio",
 ]
 
 # Keyword che indicano costo/costo d'acquisto
 COST_HINTS = [
-    "cost", "costo", "purchase", "acquisto", "buying",
-    "wholesale", "ingrosso", "supplier", "fornitore",
+    "cost",
+    "costo",
+    "purchase",
+    "acquisto",
+    "buying",
+    "wholesale",
+    "ingrosso",
+    "supplier",
+    "fornitore",
 ]
 
 # Keyword che indicano sconto
 DISCOUNT_HINTS = [
-    "discount", "sconto", "rebate", "remise", "descuento",
-    "rabatt", "reduction", "promo",
+    "discount",
+    "sconto",
+    "rebate",
+    "remise",
+    "descuento",
+    "rabatt",
+    "reduction",
+    "promo",
 ]
 
 
@@ -62,7 +83,9 @@ class MarginRule:
                     continue  # Ambiguo, non generare
 
                 used.add(pair)
-                conf = round((semantics[sell_col]["confidence"] + semantics[cost_col]["confidence"]) / 2, 3)
+                conf = round(
+                    (semantics[sell_col]["confidence"] + semantics[cost_col]["confidence"]) / 2, 3
+                )
 
                 # Margine assoluto
                 features.append({
@@ -87,9 +110,11 @@ class MarginRule:
                 })
 
         # Cerca coppie (prezzo, sconto) per il prezzo netto
-        discount_cols = [c for c, v in semantics.items()
-                         if v["semantic_type"] in ("price", "percentage")
-                         and _best_match(c, DISCOUNT_HINTS) > 0]
+        discount_cols = [
+            c
+            for c, v in semantics.items()
+            if v["semantic_type"] in ("price", "percentage") and _best_match(c, DISCOUNT_HINTS) > 0
+        ]
 
         for p in price_cols:
             for d in discount_cols:
@@ -103,8 +128,9 @@ class MarginRule:
                 conf = round((semantics[p]["confidence"] + semantics[d]["confidence"]) / 2 * 0.9, 3)
                 features.append({
                     "name": f"net_price_{p}",
-                    "formula": f"{p} * (1 - {d})" if semantics[d].get("meta", {}).get("scale") == "0-1"
-                               else f"{p} * (1 - {d} / 100)",
+                    "formula": f"{p} * (1 - {d})"
+                    if semantics[d].get("meta", {}).get("scale") == "0-1"
+                    else f"{p} * (1 - {d} / 100)",
                     "description": f"Prezzo netto dopo sconto {d}",
                     "type": "discount",
                     "source_columns": [p, d],

@@ -1,6 +1,6 @@
 import {
   useEffect, useRef, useCallback,
-  type KeyboardEvent, type ReactNode,
+  type KeyboardEvent, type ReactElement, type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
 import { useUIStore } from '@/stores/uiStore'
@@ -352,7 +352,7 @@ function ReportSectionsModal({ onClose }: { onClose: () => void }) {
 // ║  ModalRenderer                                                           ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 
-const MODAL_MAP: Record<ModalId, (props: { onClose: () => void }) => React.ReactElement | null> = {
+const MODAL_MAP: Record<ModalId, (props: { onClose: () => void }) => ReactElement | null> = {
   delete_project:   DeleteProjectModal,
   context_config:   ContextConfigModal,
   run_confirm:      RunConfirmModal,

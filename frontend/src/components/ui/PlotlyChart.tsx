@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback, useState, memo } from 'react'
+import type { Config, Data, Layout } from 'plotly.js'
 import { useUIStore, selectThemeResolved } from '@/stores/uiStore'
 
 // ╔══════════════════════════════════════════════════════════════════════════╗
@@ -149,10 +150,15 @@ export const PlotlyChart = memo(function PlotlyChart({
         { height, autosize: true },
       )
 
-      await Plotly.react(el, figure.data as any, mergedLayout as Partial<Plotly.Layout>, {
-        ...PLOTLY_CONFIG,
-        ...((figure.config ?? {}) as Record<string, unknown>),
-      } as Partial<Plotly.Config>)
+      await Plotly.react(
+        el,
+        figure.data as Data[],
+        mergedLayout as Partial<Layout>,
+        {
+          ...PLOTLY_CONFIG,
+          ...((figure.config ?? {}) as Record<string, unknown>),
+        } as Partial<Config>,
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Errore rendering grafico')
     } finally {

@@ -4,17 +4,32 @@ Logica intelligente: abbina le colonne per nome/contesto invece di fare
 il prodotto cartesiano di tutti i price × tutti i quantity.
 """
 
-
 # Keyword che indicano un prezzo "unitario" (preferiti per il calcolo ricavo)
 UNIT_PRICE_HINTS = [
-    "unit", "single", "each", "per", "unitario", "unitaria",
-    "list", "base", "standard", "regular",
+    "unit",
+    "single",
+    "each",
+    "per",
+    "unitario",
+    "unitaria",
+    "list",
+    "base",
+    "standard",
+    "regular",
 ]
 
 # Keyword che indicano un prezzo "totale" (da evitare nel calcolo ricavo)
 TOTAL_PRICE_HINTS = [
-    "total", "totale", "sum", "gross", "net", "subtotal",
-    "revenue", "ricavo", "amount", "importo",
+    "total",
+    "totale",
+    "sum",
+    "gross",
+    "net",
+    "subtotal",
+    "revenue",
+    "ricavo",
+    "amount",
+    "importo",
 ]
 
 
@@ -31,7 +46,14 @@ def _columns_are_related(price_col: str, qty_col: str) -> float:
     Cerca prefissi/suffissi comuni (es. 'product_price' e 'product_qty').
     """
     p = price_col.lower().replace("price", "").replace("prezzo", "").replace("costo", "").strip("_")
-    q = qty_col.lower().replace("qty", "").replace("quantity", "").replace("quantita", "").strip("_")
+    q = (
+        qty_col
+        .lower()
+        .replace("qty", "")
+        .replace("quantity", "")
+        .replace("quantita", "")
+        .strip("_")
+    )
 
     if not p or not q:
         return 0.0
@@ -56,7 +78,7 @@ def _columns_are_related(price_col: str, qty_col: str) -> float:
 class RevenueRule:
     def apply(self, df, semantics):
         price_cols = [c for c, v in semantics.items() if v["semantic_type"] == "price"]
-        qty_cols   = [c for c, v in semantics.items() if v["semantic_type"] == "quantity"]
+        qty_cols = [c for c, v in semantics.items() if v["semantic_type"] == "quantity"]
 
         if not price_cols or not qty_cols:
             return []
@@ -81,12 +103,11 @@ class RevenueRule:
                 affinity = _columns_are_related(p, q)
 
                 # Confidenza combinata: media pesata + bonus affinità
-                combined_conf = round(
-                    (p_conf * 0.5 + q_conf * 0.5) + affinity,
-                    3
-                )
+                combined_conf = round((p_conf * 0.5 + q_conf * 0.5) + affinity, 3)
 
-                feature_name = f"revenue_{p}_x_{q}" if len(price_cols) > 1 or len(qty_cols) > 1 else "revenue"
+                feature_name = (
+                    f"revenue_{p}_x_{q}" if len(price_cols) > 1 or len(qty_cols) > 1 else "revenue"
+                )
 
                 features.append({
                     "name": feature_name,

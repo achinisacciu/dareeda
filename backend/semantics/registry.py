@@ -13,5 +13,5 @@ DETECTORS = [
     DateDetector(),
     PercentageDetector(),
     CategoricalDetector(),
-    TextDetector()
+    TextDetector(),
 ]

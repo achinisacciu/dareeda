@@ -8,9 +8,11 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
+
 # Schema per accettare l'output JSON dell'analisi dal frontend
 class ReportRequest(BaseModel):
     analysis_data: dict[str, Any]
+
 
 @router.post("/generate-pdf", summary="Genera un PDF in memoria e lo restituisce direttamente")
 def generate_pdf_stateless(payload: ReportRequest):
@@ -25,15 +27,12 @@ def generate_pdf_stateless(payload: ReportRequest):
         pdf_buffer.close()
 
         # Restituisce direttamente il file PDF al browser senza salvarlo
-        headers = {
-            'Content-Disposition': 'attachment; filename="dareeda_report.pdf"'
-        }
-        return Response(
-            content=pdf_bytes,
-            media_type="application/pdf",
-            headers=headers
-        )
+        headers = {"Content-Disposition": 'attachment; filename="dareeda_report.pdf"'}
+        return Response(content=pdf_bytes, media_type="application/pdf", headers=headers)
 
-    except Exception:
+    except Exception as e:
         print(f"[REPORT ERROR] {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail="Errore durante la generazione del report PDF")
+        raise HTTPException(
+            status_code=500,
+            detail="Errore durante la generazione del report PDF",
+        ) from e

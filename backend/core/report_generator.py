@@ -21,7 +21,12 @@ def _find_typst() -> str:
     local_app = os.environ.get("LOCALAPPDATA", "")
     candidates = [
         Path(local_app) / "Microsoft" / "WinGet" / "Links" / "typst.exe",
-        Path(local_app) / "Microsoft" / "WinGet" / "Packages" / "Typst.Typst_Microsoft.Winget.Source_8wekyb3d8bbwe" / "typst.exe",
+        Path(local_app)
+        / "Microsoft"
+        / "WinGet"
+        / "Packages"
+        / "Typst.Typst_Microsoft.Winget.Source_8wekyb3d8bbwe"
+        / "typst.exe",
         Path(r"C:\Program Files\typst\typst.exe"),
     ]
     for candidate in candidates:
@@ -29,8 +34,7 @@ def _find_typst() -> str:
             return str(candidate)
 
     raise FileNotFoundError(
-        "Typst non trovato. Installa con: winget install --id Typst.Typst "
-        "oppure configura TYPST_BIN."
+        "Typst non trovato. Installa con: winget install --id Typst.Typst oppure configura TYPST_BIN."
     )
 
 
@@ -127,7 +131,11 @@ def _pair_table(rows: list[tuple[str, str]]) -> str:
         cells.append(f'table.cell(fill: rgb("#F7F7F8"))[*{_esc(label)}*]')
         cells.append(f"[{_esc(value)}]")
 
-    return "#table(\n  columns: 4,\n  stroke: rgb(\"#E7E5E4\"),\n  inset: 8pt,\n  " + ",\n  ".join(cells) + "\n)\n"
+    return (
+        '#table(\n  columns: 4,\n  stroke: rgb("#E7E5E4"),\n  inset: 8pt,\n  '
+        + ",\n  ".join(cells)
+        + "\n)\n"
+    )
 
 
 def _rows_table(items: list[dict], keys: list[tuple[str, str]], limit: int = 12) -> str:
@@ -143,7 +151,7 @@ def _rows_table(items: list[dict], keys: list[tuple[str, str]], limit: int = 12)
     return (
         "#table(\n"
         f"  columns: {len(keys)},\n"
-        "  stroke: rgb(\"#E7E5E4\"),\n"
+        '  stroke: rgb("#E7E5E4"),\n'
         "  inset: 8pt,\n"
         "  table.header(\n"
         f"    {header}\n"
@@ -244,7 +252,9 @@ def _generate_typst(data: dict, img_dir: Path, chart_map: dict) -> str:
     report_meta = deliverables.get("report_metadata", {}) or front_matter.get("report_metadata", {})
     generated_at = cover.get("generated_at") or datetime.now().strftime("%d/%m/%Y %H:%M")
     target = data.get("target") or analysis_context.get("target") or "Non impostata"
-    problem_type = data.get("problem_type") or analysis_context.get("problem_type") or "Non impostato"
+    problem_type = (
+        data.get("problem_type") or analysis_context.get("problem_type") or "Non impostato"
+    )
     sampling_state = "Campionato" if data.get("sampled") else "Completo"
     sample_rows = data.get("sample_n") or rows
     rows_before_sampling = sampling.get("full_rows_before_sampling") or rows
@@ -297,16 +307,26 @@ def _generate_typst(data: dict, img_dir: Path, chart_map: dict) -> str:
         ]),
         "\n= Executive Summary\n\n",
         _bullet_list(
-            ([executive.get("executive_summary")] if executive.get("executive_summary") else []) + summary_insights,
+            ([executive.get("executive_summary")] if executive.get("executive_summary") else [])
+            + summary_insights,
             empty_label="Analisi completata senza commenti sintetici aggiuntivi.",
         ),
         "\n== Business Context\n\n",
         _pair_table([
             ("Progetto", (executive.get("business_context") or {}).get("project", filename)),
             ("Obiettivo", (executive.get("business_context") or {}).get("objective", problem_type)),
-            ("Stakeholder", (executive.get("business_context") or {}).get("stakeholder", "Data / Analytics")),
-            ("Timeline", (executive.get("business_context") or {}).get("timeline", "Current sprint")),
-            ("Impatto atteso", (executive.get("business_context") or {}).get("expected_impact", "Da quantificare")),
+            (
+                "Stakeholder",
+                (executive.get("business_context") or {}).get("stakeholder", "Data / Analytics"),
+            ),
+            (
+                "Timeline",
+                (executive.get("business_context") or {}).get("timeline", "Current sprint"),
+            ),
+            (
+                "Impatto atteso",
+                (executive.get("business_context") or {}).get("expected_impact", "Da quantificare"),
+            ),
             ("Recommendation", ((executive.get("recommendation") or {}).get("label", "n/a"))),
         ]),
         "\n= Contesto e Decisioni\n\n",
@@ -316,7 +336,10 @@ def _generate_typst(data: dict, img_dir: Path, chart_map: dict) -> str:
             ("Righe origine", _fmt_int(rows_before_sampling)),
             ("Target", target),
             ("Tipo problema", problem_type),
-            ("Feature derivate accettate", ", ".join(accepted_feature_names) if accepted_feature_names else "Nessuna"),
+            (
+                "Feature derivate accettate",
+                ", ".join(accepted_feature_names) if accepted_feature_names else "Nessuna",
+            ),
             ("Pulizie applicate", ", ".join(cleaning_actions) if cleaning_actions else "Nessuna"),
             ("Output PDF", "Insight, grafici e decisioni utente"),
         ]),
@@ -326,13 +349,13 @@ def _generate_typst(data: dict, img_dir: Path, chart_map: dict) -> str:
             f"Tipo di problema: {problem_type}",
             (
                 f"Feature derivate incluse: {', '.join(accepted_feature_names)}"
-                if accepted_feature_names else
-                "Nessuna feature derivata accettata."
+                if accepted_feature_names
+                else "Nessuna feature derivata accettata."
             ),
             (
                 f"Azioni di cleaning applicate: {', '.join(cleaning_actions)}"
-                if cleaning_actions else
-                "Nessuna azione di cleaning applicata."
+                if cleaning_actions
+                else "Nessuna azione di cleaning applicata."
             ),
         ]),
         "\n= Panoramica Dataset\n\n",
@@ -342,7 +365,12 @@ def _generate_typst(data: dict, img_dir: Path, chart_map: dict) -> str:
             ("Celle totali", _fmt_int(overview.get("n_cells", 0))),
             ("Memoria", f"{_fmt_float(overview.get('memory_mb', 0))} MB"),
             ("Missing globale", f"{_fmt_float(overview.get('pct_missing_global', 0))}%"),
-            ("Colonne derivate", ", ".join(data.get("derived_columns", [])) if data.get("derived_columns") else "Nessuna"),
+            (
+                "Colonne derivate",
+                ", ".join(data.get("derived_columns", []))
+                if data.get("derived_columns")
+                else "Nessuna",
+            ),
             ("Colonne dopo cleaning", _fmt_int(applied_cleaning.get("after_cols", cols))),
             ("Righe dopo cleaning", _fmt_int(applied_cleaning.get("after_rows", rows))),
         ]),
@@ -350,7 +378,13 @@ def _generate_typst(data: dict, img_dir: Path, chart_map: dict) -> str:
 
     types_chart_key = "overview.charts.types_distribution"
     if types_chart_key in chart_map:
-        document.append(_img(f"images/{chart_map[types_chart_key]}.png", "Distribuzione dei tipi semantici", "84%"))
+        document.append(
+            _img(
+                f"images/{chart_map[types_chart_key]}.png",
+                "Distribuzione dei tipi semantici",
+                "84%",
+            )
+        )
 
     document.extend([
         "\n== Struttura colonne\n\n",
@@ -372,8 +406,14 @@ def _generate_typst(data: dict, img_dir: Path, chart_map: dict) -> str:
             ("Estrazione", (profiling.get("lineage") or {}).get("extraction_mode", "n/a")),
             ("Update frequency", (profiling.get("lineage") or {}).get("update_frequency", "n/a")),
             ("Rows", _fmt_int((profiling.get("structural_overview") or {}).get("n_rows", rows))),
-            ("Features", _fmt_int((profiling.get("structural_overview") or {}).get("n_columns", cols))),
-            ("Memoria", f"{_fmt_float((profiling.get('structural_overview') or {}).get('memory_mb', 0))} MB"),
+            (
+                "Features",
+                _fmt_int((profiling.get("structural_overview") or {}).get("n_columns", cols)),
+            ),
+            (
+                "Memoria",
+                f"{_fmt_float((profiling.get('structural_overview') or {}).get('memory_mb', 0))} MB",
+            ),
             ("PII candidate", _fmt_int(len(profiling.get("pii_candidates") or []))),
         ]),
         "\n= Qualita del Dato\n\n",
@@ -384,7 +424,10 @@ def _generate_typst(data: dict, img_dir: Path, chart_map: dict) -> str:
             ("Righe duplicate", _fmt_int(duplicates.get("n_duplicate_rows", 0))),
             ("Percentuale duplicate", f"{_fmt_float(duplicates.get('pct_duplicate_rows', 0))}%"),
             ("Missing medi per riga", _fmt_float(missing_global.get("mean_missing_per_row", 0))),
-            ("Missing mediani per riga", _fmt_float(missing_global.get("median_missing_per_row", 0))),
+            (
+                "Missing mediani per riga",
+                _fmt_float(missing_global.get("median_missing_per_row", 0)),
+            ),
             ("Focus report", "Pattern missing e segnali di qualita"),
         ]),
     ])
@@ -392,10 +435,19 @@ def _generate_typst(data: dict, img_dir: Path, chart_map: dict) -> str:
     for key, caption in [
         ("profiling.charts.semantic_treemap", "Semantic types treemap"),
         ("profiling.charts.cardinality_missing_scatter", "Cardinality vs missing"),
-        ("data_quality.missing.charts.missing_bar", "Distribuzione dei valori mancanti per colonna"),
+        (
+            "data_quality.missing.charts.missing_bar",
+            "Distribuzione dei valori mancanti per colonna",
+        ),
         ("data_quality.missing.charts.missing_heatmap", "Heatmap dei missing"),
-        ("data_quality.missing.charts.missing_cooccurrence", "Matrice di co-occorrenza dei missing"),
-        ("data_quality.missing.charts.missing_pattern_correlation", "Correlazione dei pattern di missing"),
+        (
+            "data_quality.missing.charts.missing_cooccurrence",
+            "Matrice di co-occorrenza dei missing",
+        ),
+        (
+            "data_quality.missing.charts.missing_pattern_correlation",
+            "Correlazione dei pattern di missing",
+        ),
         ("data_quality.missing.charts.missing_dendrogram", "Dendrogramma dei pattern di missing"),
     ]:
         if key in chart_map:
@@ -436,10 +488,12 @@ def _generate_typst(data: dict, img_dir: Path, chart_map: dict) -> str:
         if column_data.get("ai_comment"):
             document.append(f"_{_esc(column_data['ai_comment'])}_\n\n")
 
-        for chart_name in (column_data.get("charts") or {}):
+        for chart_name in column_data.get("charts") or {}:
             key = f"univariate.{column}.charts.{chart_name}"
             if key in chart_map:
-                document.append(_img(f"images/{chart_map[key]}.png", f"{column} - {chart_name}", "88%"))
+                document.append(
+                    _img(f"images/{chart_map[key]}.png", f"{column} - {chart_name}", "88%")
+                )
                 break
 
     document.append("\n= Analisi Bivariata e Multivariata\n\n")
@@ -524,7 +578,9 @@ def _generate_typst(data: dict, img_dir: Path, chart_map: dict) -> str:
             limit=12,
         ),
         "\n== Limitazioni\n\n",
-        _bullet_list(governance.get("limitations") or [], empty_label="Nessuna limitazione registrata."),
+        _bullet_list(
+            governance.get("limitations") or [], empty_label="Nessuna limitazione registrata."
+        ),
         "\n= Deliverables\n\n",
         _rows_table(
             deliverables.get("outputs") or [],
@@ -589,7 +645,7 @@ def generate_report_in_memory(analysis_data: dict) -> io.BytesIO:
         result = subprocess.run(
             [typst_bin, "compile", str(typ_path), "-"],
             capture_output=True,
-            cwd=str(tmp_path), # Lavoriamo nella cartella temporanea
+            cwd=str(tmp_path),  # Lavoriamo nella cartella temporanea
         )
 
         if result.returncode != 0:

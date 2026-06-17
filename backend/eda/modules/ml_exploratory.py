@@ -11,7 +11,8 @@ from sklearn.neighbors import LocalOutlierFactor
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 
-def _fig(f): return json.loads(f.to_json())
+def _fig(f):
+    return json.loads(f.to_json())
 
 
 def validate_target(df, target_col):
@@ -52,12 +53,13 @@ def run(df, df_full, semantic_types, groups, context=None):
         result["feature_importance"] = {"skipped": True, "reason": "Tipo problema non valido"}
         return result
 
-    is_class = (problem_type == "classification")
+    is_class = problem_type == "classification"
     result["feature_importance"] = _mutual_info(df, feature_cols, target_col, is_class)
     return result
 
 
 # ── Feature importance (Mutual Information) ────────────────────────────────
+
 
 def _mutual_info(df, feature_cols, target_col, is_class):
     if len(feature_cols) < 1:
@@ -66,7 +68,9 @@ def _mutual_info(df, feature_cols, target_col, is_class):
     try:
         feature_cols = feature_cols[:15]
 
-        mat = df.select([pl.col(c).cast(pl.Float64).fill_null(pl.col(c).mean()) for c in feature_cols]).to_numpy()
+        mat = df.select([
+            pl.col(c).cast(pl.Float64).fill_null(pl.col(c).mean()) for c in feature_cols
+        ]).to_numpy()
         mask = ~np.isnan(mat).any(axis=1)
         mat = mat[mask]
 
@@ -78,20 +82,26 @@ def _mutual_info(df, feature_cols, target_col, is_class):
             y = df[target_col].cast(pl.Float64).fill_null(0).to_numpy()[mask]
             mi = mutual_info_regression(mat, y, random_state=42)
 
-        results = [{"feature": feature_cols[i], "mi_score": round(float(mi[i]), 4),
-                    "rank": i+1} for i in np.argsort(mi)[::-1]]
+        results = [
+            {"feature": feature_cols[i], "mi_score": round(float(mi[i]), 4), "rank": i + 1}
+            for i in np.argsort(mi)[::-1]
+        ]
 
-        fig = go.Figure(go.Bar(
-            x=[r["feature"] for r in results[:15]],
-            y=[r["mi_score"] for r in results[:15]],
-            marker_color=["#FF4D00" if i == 0 else "#2B2B2B" for i in range(len(results[:15]))],
-            text=[str(round(r["mi_score"], 3)) for r in results[:15]],
-            textposition="outside",
-        ))
+        fig = go.Figure(
+            go.Bar(
+                x=[r["feature"] for r in results[:15]],
+                y=[r["mi_score"] for r in results[:15]],
+                marker_color=["#FF4D00" if i == 0 else "#2B2B2B" for i in range(len(results[:15]))],
+                text=[str(round(r["mi_score"], 3)) for r in results[:15]],
+                textposition="outside",
+            )
+        )
         fig.update_layout(
             title=f"Mutual Information vs {target_col}",
-            xaxis_title="Feature", yaxis_title="MI Score",
-            plot_bgcolor="#F5F5F5", paper_bgcolor="#FFFFFF",
+            xaxis_title="Feature",
+            yaxis_title="MI Score",
+            plot_bgcolor="#F5F5F5",
+            paper_bgcolor="#FFFFFF",
             font=dict(family="JetBrains Mono", size=11),
             margin=dict(t=50, b=100, l=60, r=20),
             xaxis=dict(tickangle=-45),
@@ -113,15 +123,18 @@ def _mutual_info(df, feature_cols, target_col, is_class):
 
 # ── Clustering (KMeans) ─────────────────────────────────────────────────────
 
+
 def _clustering(df, num_cols):
     if len(num_cols) < 2:
         return {"skipped": True, "reason": "Meno di 2 colonne numeriche"}
 
     try:
         cols = num_cols[:8]
-        mat  = df.select([pl.col(c).cast(pl.Float64).fill_null(pl.col(c).mean()) for c in cols]).to_numpy()
+        mat = df.select([
+            pl.col(c).cast(pl.Float64).fill_null(pl.col(c).mean()) for c in cols
+        ]).to_numpy()
         mask = ~np.isnan(mat).any(axis=1)
-        mat  = mat[mask]
+        mat = mat[mask]
         if len(mat) < 20:
             return {"skipped": True, "reason": "Dati insufficienti"}
 
@@ -129,8 +142,8 @@ def _clustering(df, num_cols):
         n_sample = min(len(mat_s), 5000)
         mat_s = mat_s[:n_sample]
 
-        k_range   = range(2, min(9, n_sample // 5 + 1))
-        inertias  = []
+        k_range = range(2, min(9, n_sample // 5 + 1))
+        inertias = []
         silhouettes = []
 
         for k in k_range:
@@ -151,62 +164,93 @@ def _clustering(df, num_cols):
         # Elbow chart
         k_list = list(k_range)
         fig_elbow = go.Figure()
-        fig_elbow.add_trace(go.Scatter(x=k_list, y=inertias, mode="lines+markers",
-                                        line=dict(color="#2B2B2B", width=2),
-                                        marker=dict(color="#FF4D00", size=8)))
+        fig_elbow.add_trace(
+            go.Scatter(
+                x=k_list,
+                y=inertias,
+                mode="lines+markers",
+                line=dict(color="#2B2B2B", width=2),
+                marker=dict(color="#FF4D00", size=8),
+            )
+        )
         fig_elbow.update_layout(
             title="KMeans — Elbow Method (Inertia)",
-            xaxis_title="K", yaxis_title="Inertia",
-            plot_bgcolor="#F5F5F5", paper_bgcolor="#FFFFFF",
+            xaxis_title="K",
+            yaxis_title="Inertia",
+            plot_bgcolor="#F5F5F5",
+            paper_bgcolor="#FFFFFF",
             font=dict(family="JetBrains Mono", size=11),
             margin=dict(t=50, b=50, l=60, r=20),
         )
 
         # Silhouette chart
-        fig_sil = go.Figure(go.Bar(
-            x=[s["k"] for s in silhouettes], y=[s["silhouette"] for s in silhouettes],
-            marker_color=["#FF4D00" if s["k"] == best_k_sil else "#2B2B2B" for s in silhouettes],
-        ))
+        fig_sil = go.Figure(
+            go.Bar(
+                x=[s["k"] for s in silhouettes],
+                y=[s["silhouette"] for s in silhouettes],
+                marker_color=[
+                    "#FF4D00" if s["k"] == best_k_sil else "#2B2B2B" for s in silhouettes
+                ],
+            )
+        )
         fig_sil.update_layout(
             title="KMeans — Silhouette Score per K",
-            xaxis_title="K", yaxis_title="Silhouette",
-            plot_bgcolor="#F5F5F5", paper_bgcolor="#FFFFFF",
+            xaxis_title="K",
+            yaxis_title="Silhouette",
+            plot_bgcolor="#F5F5F5",
+            paper_bgcolor="#FFFFFF",
             font=dict(family="JetBrains Mono", size=11),
             margin=dict(t=50, b=50, l=60, r=20),
         )
 
         # PCA-based scatter dei cluster
         from sklearn.decomposition import PCA as _PCA
+
         pca2 = _PCA(n_components=2)
         coords = pca2.fit_transform(mat_s)
-        colors = ["#FF4D00","#2B2B2B","#888888","#FFAA00","#003366","#990000","#004400","#444444"]
+        colors = [
+            "#FF4D00",
+            "#2B2B2B",
+            "#888888",
+            "#FFAA00",
+            "#003366",
+            "#990000",
+            "#004400",
+            "#444444",
+        ]
         fig_scatter = go.Figure()
         for k in range(best_k_sil):
             mask2 = labels_final == k
-            fig_scatter.add_trace(go.Scatter(
-                x=coords[mask2, 0].tolist(), y=coords[mask2, 1].tolist(),
-                mode="markers", name=f"Cluster {k}",
-                marker=dict(color=colors[k % len(colors)], size=5, opacity=0.7),
-            ))
+            fig_scatter.add_trace(
+                go.Scatter(
+                    x=coords[mask2, 0].tolist(),
+                    y=coords[mask2, 1].tolist(),
+                    mode="markers",
+                    name=f"Cluster {k}",
+                    marker=dict(color=colors[k % len(colors)], size=5, opacity=0.7),
+                )
+            )
         fig_scatter.update_layout(
             title=f"KMeans K={best_k_sil} — Proiezione PCA",
-            xaxis_title="PC1", yaxis_title="PC2",
-            plot_bgcolor="#F5F5F5", paper_bgcolor="#FFFFFF",
+            xaxis_title="PC1",
+            yaxis_title="PC2",
+            plot_bgcolor="#F5F5F5",
+            paper_bgcolor="#FFFFFF",
             font=dict(family="JetBrains Mono", size=11),
             margin=dict(t=50, b=50, l=60, r=20),
         )
 
         return {
-            "best_k":           best_k_sil,
+            "best_k": best_k_sil,
             "silhouette_scores": silhouettes,
-            "cluster_sizes":    cluster_sizes,
+            "cluster_sizes": cluster_sizes,
             "charts": {
-                "elbow":    _fig(fig_elbow),
+                "elbow": _fig(fig_elbow),
                 "silhouette": _fig(fig_sil),
-                "scatter":  _fig(fig_scatter),
+                "scatter": _fig(fig_scatter),
             },
-            "ai_comment": f"La soluzione ottimale suggerita è K={best_k_sil} cluster (miglior silhouette score). " +
-                           "I cluster sono proiettati sullo spazio PC1×PC2.",
+            "ai_comment": f"La soluzione ottimale suggerita è K={best_k_sil} cluster (miglior silhouette score). "
+            + "I cluster sono proiettati sullo spazio PC1×PC2.",
         }
     except Exception as e:
         return {"skipped": True, "error": str(e)}
@@ -214,15 +258,18 @@ def _clustering(df, num_cols):
 
 # ── Anomaly Detection ────────────────────────────────────────────────────────
 
+
 def _anomaly(df, num_cols):
     if len(num_cols) < 2:
         return {"skipped": True, "reason": "Meno di 2 colonne numeriche"}
 
     try:
         cols = num_cols[:10]
-        mat  = df.select([pl.col(c).cast(pl.Float64).fill_null(pl.col(c).mean()) for c in cols]).to_numpy()
+        mat = df.select([
+            pl.col(c).cast(pl.Float64).fill_null(pl.col(c).mean()) for c in cols
+        ]).to_numpy()
         mask = ~np.isnan(mat).any(axis=1)
-        mat  = mat[mask]
+        mat = mat[mask]
         if len(mat) < 20:
             return {"skipped": True, "reason": "Dati insufficienti"}
 
@@ -240,10 +287,10 @@ def _anomaly(df, num_cols):
         lof_pred = lof.fit_predict(mat_s)
 
         # Consensus
-        consensus = ((iso_pred == -1) & (lof_pred == -1))
-        n_iso   = int((iso_pred == -1).sum())
-        n_lof   = int((lof_pred == -1).sum())
-        n_cons  = int(consensus.sum())
+        consensus = (iso_pred == -1) & (lof_pred == -1)
+        n_iso = int((iso_pred == -1).sum())
+        n_lof = int((lof_pred == -1).sum())
+        n_cons = int(consensus.sum())
         n_total = len(mat_s)
 
         # Anomaly score distribution
@@ -251,30 +298,45 @@ def _anomaly(df, num_cols):
         normal_scores = iso_scores[iso_pred == 1].tolist()
         anomaly_scores = iso_scores[iso_pred == -1].tolist()
         if normal_scores:
-            fig_score.add_trace(go.Histogram(x=normal_scores, name="Normale",
-                                              marker_color="#2B2B2B", opacity=0.7, nbinsx=30))
+            fig_score.add_trace(
+                go.Histogram(
+                    x=normal_scores, name="Normale", marker_color="#2B2B2B", opacity=0.7, nbinsx=30
+                )
+            )
         if anomaly_scores:
-            fig_score.add_trace(go.Histogram(x=anomaly_scores, name="Anomalia",
-                                              marker_color="#FF4D00", opacity=0.8, nbinsx=20))
+            fig_score.add_trace(
+                go.Histogram(
+                    x=anomaly_scores,
+                    name="Anomalia",
+                    marker_color="#FF4D00",
+                    opacity=0.8,
+                    nbinsx=20,
+                )
+            )
         fig_score.update_layout(
             title="Isolation Forest — Distribuzione anomaly score",
-            xaxis_title="Score", yaxis_title="Frequenza",
+            xaxis_title="Score",
+            yaxis_title="Frequenza",
             barmode="overlay",
-            plot_bgcolor="#F5F5F5", paper_bgcolor="#FFFFFF",
+            plot_bgcolor="#F5F5F5",
+            paper_bgcolor="#FFFFFF",
             font=dict(family="JetBrains Mono", size=11),
             margin=dict(t=50, b=50, l=60, r=20),
         )
 
         return {
-            "n_observations":     n_total,
-            "isolation_forest":   {"n_anomalies": n_iso, "pct": round(n_iso/n_total*100, 2)},
-            "lof":                {"n_anomalies": n_lof, "pct": round(n_lof/n_total*100, 2)},
-            "consensus":          {"n_anomalies": n_cons, "pct": round(n_cons/n_total*100, 2)},
-            "features_used":      cols,
-            "charts":             {"score_distribution": _fig(fig_score)},
-            "ai_comment": f"Rilevate {n_iso} anomalie con Isolation Forest ({round(n_iso/n_total*100,1)}%) e {n_lof} con LOF. " +
-                           f"Consenso tra i due metodi: {n_cons} osservazioni anomale ({round(n_cons/n_total*100,1)}%).",
+            "n_observations": n_total,
+            "isolation_forest": {"n_anomalies": n_iso, "pct": round(n_iso / n_total * 100, 2)},
+            "lof": {"n_anomalies": n_lof, "pct": round(n_lof / n_total * 100, 2)},
+            "consensus": {"n_anomalies": n_cons, "pct": round(n_cons / n_total * 100, 2)},
+            "features_used": cols,
+            "charts": {"score_distribution": _fig(fig_score)},
+            "ai_comment": (
+                f"Rilevate {n_iso} anomalie con Isolation Forest ({round(n_iso / n_total * 100, 1)}%) "
+                f"e {n_lof} con LOF. "
+            )
+            + f"Consenso tra i due metodi: {n_cons} osservazioni anomale "
+            f"({round(n_cons / n_total * 100, 1)}%).",
         }
     except Exception as e:
         return {"skipped": True, "error": str(e)}
-
