@@ -3,11 +3,16 @@
 __pycache__/
 *.pyc
 *.pyo
-.env
+*.pyd
+.pytest_cache/
+.coverage
+.mypy_cache/
 
 # Node
 node_modules/
 dist/
+*.tsbuildinfo
+.npm/
 
 # Dati utente
 data/
@@ -22,3 +27,16 @@ projects/dareeda.db
 Thumbs.db
 *.db
 *.sqlite3
+
+# Skills (Kilo configuration)
+skills/**/*.md filter=lfs diff=lfs merge=lfs -text
+
+# Logs
+*.log
+logs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
