@@ -202,6 +202,61 @@ DISCOUNT_KEYWORDS = [
     "promocao",
 ]
 
+PROTECTED_ATTRIBUTE_KEYWORDS = {
+    "gender": "gender",
+    "sex": "gender",
+    "age": "age",
+    "birth": "age",
+    "country": "geography",
+    "region": "geography",
+    "city": "geography",
+    "zip": "geography",
+    "cap": "geography",
+    "race": "sensitive",
+    "ethnicity": "sensitive",
+    "religion": "sensitive",
+    "marital": "demographic",
+    "disability": "sensitive",
+    "nationality": "geography",
+}
+
+PII_KEYWORDS = {
+    "email": "email",
+    "mail": "email",
+    "phone": "phone",
+    "mobile": "phone",
+    "tel": "phone",
+    "name": "name",
+    "nome": "name",
+    "surname": "name",
+    "cognome": "name",
+    "address": "address",
+    "indirizzo": "address",
+    "street": "address",
+    "iban": "financial",
+    "card": "financial",
+    "credit": "financial",
+    "fiscal": "government_id",
+    "tax": "government_id",
+    "ssn": "government_id",
+    "passport": "government_id",
+    "dob": "birth_date",
+    "birth": "birth_date",
+}
+
+POSITIVE_CLASS_HINTS = {
+    "1",
+    "true",
+    "yes",
+    "y",
+    "si",
+    "positive",
+    "fraud",
+    "churn",
+    "default",
+    "active",
+}
+
 MARGIN_KEYWORDS = [
     # Inglese
     "margin",

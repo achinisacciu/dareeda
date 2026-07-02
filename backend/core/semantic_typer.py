@@ -3,7 +3,8 @@ import re
 import polars as pl
 
 # Soglie
-BOOL_VALUES = {0, 1, "0", "1", "true", "false", "yes", "no", "si", "t", "f", "y", "n"}
+# ponytail: solo stringhe, il check normalizza sempre a str
+BOOL_VALUES = {"0", "1", "true", "false", "yes", "no", "si", "t", "f", "y", "n"}
 ID_KEYWORDS = re.compile(r"\b(id|key|uuid|guid|code|cod|codice|pk|fk|ref|hash)\b", re.IGNORECASE)
 GEO_LAT_KW = re.compile(r"\b(lat|latitude|latitudine)\b", re.IGNORECASE)
 GEO_LON_KW = re.compile(r"\b(lon|lng|longitude|longitudine)\b", re.IGNORECASE)
@@ -30,7 +31,7 @@ def detect_semantic_type(series: pl.Series) -> str:
     name = series.name
     dtype = series.dtype
     n = len(series)
-    series.null_count()
+    # ponytail: null_count non usato, rimosso
     valid = series.drop_nulls()
     n_unq = valid.n_unique() if len(valid) > 0 else 0
     card_r = n_unq / n if n > 0 else 0
@@ -45,11 +46,7 @@ def detect_semantic_type(series: pl.Series) -> str:
     if n_unq <= 2 and set(str(v).lower() for v in valid.unique().to_list()) <= BOOL_VALUES:
         return "boolean"
 
-    # 2b. Float -> sempre numerico continuo (mai ID)
-    if dtype in (pl.Float32, pl.Float64):
-        return "numeric_continuous"
-
-    # 3. Geografico (nome colonna)
+    # 3. Geografico (nome colonna) — prima del check float per catturare latitude/longitude flaot
     if GEO_LAT_KW.search(name):
         return "geographic"
     if GEO_LON_KW.search(name):
@@ -61,7 +58,7 @@ def detect_semantic_type(series: pl.Series) -> str:
     if card_r >= CARD_ID_RATIO and n_unq > 100:
         return "id"
 
-    # 5. Numerico
+    # 5. Numerico — float dopo geografico/ID per non oscurarli
     if dtype in (
         pl.Int8,
         pl.Int16,
@@ -115,3 +112,52 @@ def group_by_semantic(typing: dict[str, str]) -> dict[str, list[str]]:
         else:
             groups["unknown"].append(col)
     return groups
+
+def analyze_datetime_features(df: pl.DataFrame, dt_cols: list[str]) -> dict[str, dict]:
+    """Analizza le colonne datetime per frequenza e gap temporali."""
+    results = {}
+    for col in dt_cols:
+        try:
+            s = df[col].drop_nulls().cast(pl.Datetime)
+            if len(s) < 2:
+                continue
+            
+            s = s.sort()
+            diffs = s.diff().drop_nulls()
+            if len(diffs) == 0:
+                continue
+                
+            median_diff = diffs.median()
+            if median_diff is None:
+                continue
+                
+            # Calcola quanti gap sono > 1.5 * median_diff
+            # median_diff è un pl.Duration
+            # Possiamo confrontare le duration in millisecondi
+            diffs_ms = diffs.dt.total_milliseconds()
+            med_ms = median_diff.total_seconds() * 1000
+            
+            if med_ms == 0:
+                continue
+                
+            gaps = diffs_ms.filter(diffs_ms > med_ms * 1.5)
+            n_gaps = len(gaps)
+            
+            # Formatta frequenza in modo leggibile (euristica base)
+            freq_str = f"{med_ms}ms"
+            if med_ms >= 86400000:
+                freq_str = f"{int(med_ms/86400000)}D"
+            elif med_ms >= 3600000:
+                freq_str = f"{int(med_ms/3600000)}H"
+            elif med_ms >= 60000:
+                freq_str = f"{int(med_ms/60000)}min"
+                
+            results[col] = {
+                "inferred_frequency": freq_str,
+                "n_gaps": n_gaps,
+                "has_gaps": n_gaps > 0
+            }
+        except Exception:
+            pass
+            
+    return results

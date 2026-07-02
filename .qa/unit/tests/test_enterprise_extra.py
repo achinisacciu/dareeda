@@ -50,6 +50,26 @@ def test_detect_pii_candidates_returns_empty_for_no_pii():
     assert result == []
 
 
+def test_detect_pii_candidates_rejects_malformed_emails():
+    """Stringhe con '@' ma non email valide non devono triggerare PII detection."""
+    df = pl.DataFrame({
+        "col": ["email@", "@test", "123@", "@domain.com", "just text"],
+    })
+    result = _detect_pii_candidates(df)
+    email_cols = [c for c in result if c["pii_type"] == "email"]
+    assert len(email_cols) == 0
+
+
+def test_detect_pii_candidates_rejects_partial_phones():
+    """Stringhe numeriche corte o senza prefisso internazionale non devono triggerare phone."""
+    df = pl.DataFrame({
+        "col": ["+39", "123", "555", "02", "+1"],
+    })
+    result = _detect_pii_candidates(df)
+    phone_cols = [c for c in result if c["pii_type"] == "phone"]
+    assert len(phone_cols) == 0
+
+
 def test_status_from_profile_returns_critical_for_high_missing():
     status = _status_from_profile({"pct_missing": 50, "semantic_type": "numeric_continuous"})
     assert status == "critical"

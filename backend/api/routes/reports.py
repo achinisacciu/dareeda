@@ -1,37 +1,38 @@
-import traceback
+import logging
 from typing import Any
 
-# Sostituisci questo con il tuo vero import per la generazione PDF
-from core.report_generator import generate_report_in_memory
+from core.report_service import report_service
 from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
-# Schema per accettare l'output JSON dell'analisi dal frontend
 class ReportRequest(BaseModel):
     analysis_data: dict[str, Any]
 
 
+import asyncio
+
 @router.post("/generate-pdf", summary="Genera un PDF in memoria e lo restituisce direttamente")
-def generate_pdf_stateless(payload: ReportRequest):
+async def generate_pdf_stateless(payload: ReportRequest):
     try:
-        # Invece di scrivere su disco, la tua funzione generate_report
-        # deve essere adattata per restituire un oggetto io.BytesIO() o i bytes del PDF
-
-        pdf_buffer = generate_report_in_memory(payload.analysis_data)
-
-        # Recupera i bytes generati
+        loop = asyncio.get_running_loop()
+        pdf_buffer = await loop.run_in_executor(
+            None, report_service.generate_pdf, payload.analysis_data
+        )
         pdf_bytes = pdf_buffer.getvalue()
         pdf_buffer.close()
 
-        # Restituisce direttamente il file PDF al browser senza salvarlo
         headers = {"Content-Disposition": 'attachment; filename="dareeda_report.pdf"'}
         return Response(content=pdf_bytes, media_type="application/pdf", headers=headers)
 
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"[REPORT ERROR] {traceback.format_exc()}")
+        logger.exception("Errore generazione report")
         raise HTTPException(
             status_code=500,
             detail="Errore durante la generazione del report PDF",

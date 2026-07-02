@@ -66,9 +66,9 @@ export default function App() {
       {/* ── AppShell: sidebar + main ─────────────────────────────────────── */}
       <AppShell>
         <Suspense fallback={<PageSkeleton />}>
-          {activePage === 'upload'   && <UploadPage />}
-          {activePage === 'analysis' && <AnalysisPage />}
-          {activePage === 'report'   && <ReportPage />}
+          {activePage === 'upload' ? <UploadPage key="upload" /> : null}
+          {activePage === 'analysis' ? <AnalysisPage key="analysis" /> : null}
+          {activePage === 'report' ? <ReportPage key="report" /> : null}
         </Suspense>
       </AppShell>
 

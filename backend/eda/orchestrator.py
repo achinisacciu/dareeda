@@ -23,17 +23,18 @@ e restituisce un dizionario strutturato con:
 from __future__ import annotations
 
 import logging
+import re
 from datetime import UTC, datetime
 from typing import Any
 
 import polars as pl
+from core.models import AcceptedFeature, CleaningAction, EdaContext
 from core.sampling import maybe_sample
-from core.semantic_typer import group_by_semantic, type_dataframe
+from core.semantic_typer import analyze_datetime_features, group_by_semantic, type_dataframe
 from eda.modules import (
     bivariate,
     data_quality,
     inference,
-    insights,
     ml_exploratory,
     multivariate,
     overview,
@@ -43,8 +44,6 @@ from eda.modules import (
 
 logger = logging.getLogger(__name__)
 
-AcceptedFeature = dict[str, Any]
-CleaningAction = dict[str, Any]
 ModuleResult = dict[str, Any]
 SemanticTypes = dict[str, str]
 SemanticGroups = dict[str, list[str]]
@@ -58,7 +57,6 @@ MODULES: list[tuple[str, str, Any]] = [
     ("timeseries", "Serie temporali", timeseries.run),
     ("ml_exploratory", "ML esplorativo", ml_exploratory.run),
     ("inference", "Inferenza statistica", inference.run),
-    ("insights", "Insights finali", insights.run),
 ]
 
 
@@ -70,19 +68,22 @@ MODULES: list[tuple[str, str, Any]] = [
 def _compute_accepted_features(
     df: pl.DataFrame,
     accepted: list[AcceptedFeature],
-) -> tuple[pl.DataFrame, list[str]]:
+) -> tuple[pl.DataFrame, list[str], list[dict]]:
     """
     Applica le feature accettate dall'utente al DataFrame.
-    Restituisce il DataFrame aggiornato e la lista dei nomi delle colonne aggiunte.
+    Restituisce il DataFrame aggiornato, la lista dei nomi delle colonne aggiunte, e una lista di warning.
     """
     added_cols = []
+    warnings = []
 
     for feature in accepted:
-        name = feature.get("name")
-        formula = feature.get("formula", "")
-        sources = feature.get("source_columns", [])
+        name = feature.name
+        formula = feature.formula or ""
+        sources = feature.source_columns
+        feat_type = feature.type
 
         if not name or not formula:
+            warnings.append({"feature": name or "unknown", "reason": "Nome o formula mancanti."})
             logger.debug(
                 "Feature engineering saltata: nome o formula mancanti. Feature=%s, sources=%s",
                 name,
@@ -91,6 +92,7 @@ def _compute_accepted_features(
             continue
 
         if not all(col in df.columns for col in sources):
+            warnings.append({"feature": name, "reason": "Colonne source non presenti nel DataFrame."})
             logger.debug(
                 "Feature engineering saltata: colonne source non presenti nel DataFrame. "
                 "Feature=%s, sources=%s, columns=%s",
@@ -101,7 +103,7 @@ def _compute_accepted_features(
             continue
 
         try:
-            feat_type = feature.get("type", "")
+            feat_type = feature.type
 
             if feat_type == "revenue" and len(sources) == 2:
                 left = df[sources[0]].cast(pl.Float64, strict=False)
@@ -118,13 +120,15 @@ def _compute_accepted_features(
             elif feat_type == "margin_pct" and len(sources) == 2:
                 sell = df[sources[0]].cast(pl.Float64, strict=False)
                 cost = df[sources[1]].cast(pl.Float64, strict=False)
-                df = df.with_columns((((sell - cost) / sell.replace(0, None)) * 100).alias(name))
+                sell_no_zero = pl.when(sell == 0).then(None).otherwise(sell)
+                df = df.with_columns((((sell - cost) / sell_no_zero) * 100).alias(name))
                 added_cols.append(name)
 
             elif feat_type == "ratio" and len(sources) == 2:
                 num = df[sources[0]].cast(pl.Float64, strict=False)
-                den = df[sources[1]].cast(pl.Float64, strict=False).replace(0, None)
-                df = df.with_columns((num / den).alias(name))
+                den = df[sources[1]].cast(pl.Float64, strict=False)
+                den_no_zero = pl.when(den == 0).then(None).otherwise(den)
+                df = df.with_columns((num / den_no_zero).alias(name))
                 added_cols.append(name)
 
             elif feat_type == "discount" and len(sources) == 2:
@@ -138,10 +142,9 @@ def _compute_accepted_features(
                 added_cols.append(name)
 
             elif feat_type == "derived_feature" and isinstance(formula, str):
-                import re
-
+                # ponytail: re importato in cima al file, regex più robusta con spazi
                 f = formula.strip()
-                m = re.match(r"^(year|month)\((.+)\)$", f, flags=re.IGNORECASE)
+                m = re.match(r"^(year|month)\s*\(\s*(.+?)\s*\)$", f, flags=re.IGNORECASE)
                 if m:
                     fn = m.group(1).lower()
                     src_col = m.group(2).strip()
@@ -154,7 +157,8 @@ def _compute_accepted_features(
                         df = df.with_columns(col.alias(name))
                         added_cols.append(name)
 
-        except Exception:
+        except Exception as e:
+            warnings.append({"feature": name, "reason": f"Eccezione durante il calcolo: {str(e)}"})
             logger.exception(
                 "Feature engineering fallita. Feature=%s, type=%s, sources=%s",
                 name,
@@ -163,7 +167,7 @@ def _compute_accepted_features(
             )
             continue
 
-    return df, added_cols
+    return df, added_cols, warnings
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -178,9 +182,11 @@ def _is_string_like_dtype(dtype: Any) -> bool:
 
 def _apply_single_action(frame: pl.DataFrame, act: CleaningAction | None) -> pl.DataFrame:
     """Applica una singola azione di pulizia al DataFrame."""
-    act_type = (act or {}).get("type")
-    params = (act or {}).get("params") or {}
-    col = (act or {}).get("column")
+    if not act:
+        return frame
+    act_type = act.type
+    params = act.params or {}
+    col = act.column
 
     if act_type == "exclude_column" and col and col in frame.columns:
         return frame.drop(col)
@@ -199,13 +205,15 @@ def _apply_single_action(frame: pl.DataFrame, act: CleaningAction | None) -> pl.
         normalized = [str(v).strip().lower() for v in values if v is not None]
         if not normalized:
             return frame
-        source = pl.col(col).cast(pl.String, strict=False)
+        # ponytail: preserva il dtype originale invece di castare l'intera colonna a String
+        original_dtype = frame.schema.get(col)
+        source_str = pl.col(col).cast(pl.String, strict=False)
         if match_mode == "exact_case_insensitive_trimmed":
-            match_expr = source.str.strip_chars().str.to_lowercase().is_in(normalized)
+            match_expr = source_str.str.strip_chars().str.to_lowercase().is_in(normalized)
         else:
-            match_expr = source.is_in([str(v) for v in values if v is not None])
+            match_expr = source_str.is_in([str(v) for v in values if v is not None])
         return frame.with_columns(
-            pl.when(match_expr).then(pl.lit(None, dtype=pl.String)).otherwise(source).alias(col)
+            pl.when(match_expr).then(pl.lit(None, dtype=original_dtype)).otherwise(pl.col(col)).alias(col)
         )
 
     if (
@@ -234,7 +242,7 @@ def _apply_single_action(frame: pl.DataFrame, act: CleaningAction | None) -> pl.
 def run_analysis_stateless(
     df_full: pl.DataFrame,
     filename: str,
-    context: dict[str, Any] | None = None,
+    context: EdaContext | dict | None = None,
 ) -> dict[str, Any]:
     """
     Esegue l'intera pipeline EDA in modo stateless.
@@ -255,37 +263,41 @@ def run_analysis_stateless(
     dict strutturato con meta, feature_engineering e tutti i moduli EDA.
     """
     start_time = datetime.now(UTC)
-    context = context or {}
+    if isinstance(context, EdaContext):
+        context_dict = context.model_dump()
+    elif isinstance(context, dict):
+        context_dict = context
+    else:
+        context_dict = {}
 
-    # ── 1. Campionamento ──────────────────────────────────────────────────────
-    df, sampled, sample_n = maybe_sample(df_full)
-
-    # ── 2. Feature Engineering ────────────────────────────────────────────────
-    accepted_features = []
-    for item in context.get("accepted_features", []):
-        if isinstance(item, dict):
+    # ── 1. Feature Engineering (su df_full, non duplicate su df + df_full) ─────
+    accepted_features: list[AcceptedFeature] = []
+    for item in context_dict.get("accepted_features", []):
+        if isinstance(item, AcceptedFeature):
             accepted_features.append(item)
+        elif isinstance(item, dict):
+            accepted_features.append(AcceptedFeature(**item))
         elif isinstance(item, str):
-            accepted_features.append({
-                "name": item,
-                "type": "unknown",
-                "source_columns": [],
-                "formula": "",
-                "status": "accepted",
-            })
+            accepted_features.append(AcceptedFeature(
+                name=item, type="unknown", source_columns=[], formula="", status="accepted",
+            ))
 
     added_cols = []
     if accepted_features:
-        df, added_cols = _compute_accepted_features(df, accepted_features)
-        df_full, _ = _compute_accepted_features(df_full, accepted_features)
+        df_full, added_cols, _ = _compute_accepted_features(df_full, accepted_features)
 
-    # ── 3. Cleaning ───────────────────────────────────────────────────────────
+    # ── 2. Cleaning (su df_full) ─────────────────────────────────────────────
     pre_clean_rows = len(df_full)
     pre_clean_cols = len(df_full.columns)
 
-    cleaning_actions = context.get("cleaning_actions") or []
+    cleaning_actions_raw = context_dict.get("cleaning_actions") or []
+    cleaning_actions: list[CleaningAction] = []
+    for act in cleaning_actions_raw:
+        if isinstance(act, CleaningAction):
+            cleaning_actions.append(act)
+        elif isinstance(act, dict):
+            cleaning_actions.append(CleaningAction(**act))
     for act in cleaning_actions:
-        df = _apply_single_action(df, act)
         df_full = _apply_single_action(df_full, act)
 
     cleaning_summary = {
@@ -298,6 +310,9 @@ def run_analysis_stateless(
         "cols_removed": pre_clean_cols - len(df_full.columns),
     }
 
+    # ── 3. Campionamento (dopo le trasformazioni) ────────────────────────────
+    df, sampled, sample_n = maybe_sample(df_full)
+
     # ── 4. Semantic typing ────────────────────────────────────────────────────
     semantic_types = type_dataframe(df)
     groups = group_by_semantic(semantic_types)
@@ -309,13 +324,14 @@ def run_analysis_stateless(
         "meta": {
             "dataset_filename": filename,
             "generated_at": datetime.now(UTC).isoformat(),
-            "target": context.get("target"),
-            "problem_type": context.get("problem_type"),
+            "target": context_dict.get("target"),
+            "problem_type": context_dict.get("problem_type"),
             "n_rows_full": len(df_full),
             "n_cols": len(df_full.columns),
             "sampled": sampled,
             "sample_n": sample_n,
             "semantic_types": semantic_types,
+            "datetime_features": analyze_datetime_features(df, groups.get("datetime", [])),
             "runtime_seconds": None,  # aggiornato alla fine
         },
         # Feature engineering e cleaning applicati
@@ -335,7 +351,7 @@ def run_analysis_stateless(
                     df_full=df_full,
                     semantic_types=semantic_types,
                     groups=groups,
-                    context=context,
+                    context=context_dict,
                 )
             else:
                 results[key] = fn(

@@ -3,8 +3,15 @@ import json
 import numpy as np
 import plotly.graph_objects as go
 import polars as pl
+from scipy.stats import pearsonr
+import numpy as np
+import plotly.graph_objects as go
+import polars as pl
+from scipy.stats import pearsonr
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+from statsmodels.tools.tools import add_constant
 
 
 def _fig(f):
@@ -12,11 +19,7 @@ def _fig(f):
 
 
 def _safe_cast_float(s: pl.Series) -> pl.Series:
-    # Cast robusto a Float64 per calcoli numerici
-    try:
-        return s.cast(pl.Float64, strict=False)
-    except Exception:
-        return s.cast(pl.Float64, strict=False)
+    return s.cast(pl.Float64, strict=False)
 
 
 def _variance_rank(df: pl.DataFrame, cols: list[str], top_n: int) -> list[str]:
@@ -40,28 +43,28 @@ def _high_correlation_pairs(
 ) -> list[dict]:
     """
     Insight correlazioni elevate tra un sottoinsieme di colonne.
-    Non genera heatmap: la visualizzazione avviene lato frontend.
     """
     cols = cols[:limit]
     if len(cols) < 2:
         return []
 
-    from scipy.stats import pearsonr
-
     pairs = []
     for i, a in enumerate(cols):
-        va = _safe_cast_float(df[a]).drop_nulls().to_numpy()
-        if len(va) < min_n:
+        # ponytail: subset comune drop_nulls per allineamento spaziale
+        sub = df.select([pl.col(a).cast(pl.Float64)])
+        if sub[a].null_count() == len(sub):
             continue
         for j in range(i + 1, len(cols)):
             b = cols[j]
-            vb = _safe_cast_float(df[b]).drop_nulls().to_numpy()
-            if len(vb) < min_n:
+            pair = df.select([
+                pl.col(a).cast(pl.Float64),
+                pl.col(b).cast(pl.Float64),
+            ]).drop_nulls()
+            if len(pair) < min_n:
                 continue
-            n = min(len(va), len(vb))
-            if n < min_n:
-                continue
-            r, _ = pearsonr(va[:n], vb[:n])
+            va = pair[a].to_numpy()
+            vb = pair[b].to_numpy()
+            r, _ = pearsonr(va, vb)
             rr = float(r)
             if abs(rr) > 0.7:
                 pairs.append({
@@ -76,6 +79,7 @@ def _high_correlation_pairs(
 
 
 def run(df, df_full, semantic_types, groups, context: dict | None = None):
+    # ponytail: df_full non usato, mantenuto per compatibilità firma
     context = context or {}
     target = context.get("target")
     problem_type = context.get("problem_type")
@@ -95,6 +99,27 @@ def run(df, df_full, semantic_types, groups, context: dict | None = None):
     high_pairs = _high_correlation_pairs(df, ranking_cols, limit=20)
     correlation_global = _correlation_global(df, ranking_cols)
     pca = _pca(df, ranking_cols)
+    vif_data = _calculate_vif(df, ranking_cols)
+    
+    ml_warnings = []
+    if vif_data.get("high_vif"):
+        ml_warnings.append({
+            "type": "multicollinearity",
+            "cols": vif_data["high_vif"],
+            "action": "drop_one"
+        })
+        
+    target_leakage = []
+    if target and target in df.columns:
+        target_leakage = _detect_target_leakage(df, ranking_cols, target)
+        if target_leakage:
+            ml_warnings.append({
+                "type": "potential_target_leakage",
+                "cols": [t["col"] for t in target_leakage],
+                "action": "investigate"
+            })
+            
+    ai_comment = _generate_ai_comment(pca, vif_data, target_leakage)
 
     return {
         "numeric_columns": num_cols,
@@ -103,8 +128,11 @@ def run(df, df_full, semantic_types, groups, context: dict | None = None):
         "high_correlation_pairs": high_pairs,
         "correlation_global": correlation_global,
         "pca": pca,
+        "vif": vif_data.get("vif_scores"),
+        "ml_warnings": ml_warnings,
         "target": target if target in df.columns else None,
         "problem_type": problem_type if problem_type in ("classification", "regression") else None,
+        "ai_comment": ai_comment,
     }
 
 
@@ -114,18 +142,21 @@ def _correlation_global(df, num_cols):
 
     cols = num_cols[:25]
     mat = np.eye(len(cols))
-    from scipy.stats import pearsonr
 
     for i, a in enumerate(cols):
         for j, b in enumerate(cols):
             if i >= j:
                 continue
-            va = df[a].drop_nulls().cast(pl.Float64)
-            vb = df[b].drop_nulls().cast(pl.Float64)
-            n = min(len(va), len(vb))
-            if n < 10:
+            # ponytail: subset comune drop_nulls per allineamento spaziale
+            pair = df.select([
+                pl.col(a).cast(pl.Float64),
+                pl.col(b).cast(pl.Float64),
+            ]).drop_nulls()
+            if len(pair) < 10:
                 continue
-            r, _ = pearsonr(va[:n].to_numpy(), vb[:n].to_numpy())
+            va = pair[a].to_numpy()
+            vb = pair[b].to_numpy()
+            r, _ = pearsonr(va, vb)
             mat[i][j] = mat[j][i] = float(r)
 
     fig = go.Figure(
@@ -247,10 +278,85 @@ def _pca(df, num_cols):
             "n_components_used": n_comp,
             "components": components,
             "charts": {"scree": _fig(fig_scree), "scatter_pc1_pc2": _fig(fig_scatter)},
-            "ai_comment": (
-                f"Le prime 2 componenti spiegano il "
-                f"{round(float(np.cumsum(ev_r)[1]) * 100, 1)}% della varianza totale."
-            ),
+            "ai_comment": [
+                {
+                    "role": "data_scientist",
+                    "insight": (
+                        f"Le prime 2 componenti spiegano il "
+                        f"{round(float(np.cumsum(ev_r)[1]) * 100, 1)}% della varianza totale."
+                    )
+                }
+            ],
         }
     except Exception as e:
         return {"skipped": True, "error": str(e)}
+
+def _calculate_vif(df: pl.DataFrame, cols: list[str]) -> dict:
+    if len(cols) < 2:
+        return {"skipped": True}
+        
+    try:
+        pdf = df.select([pl.col(c).cast(pl.Float64) for c in cols[:15]]).drop_nulls().to_pandas()
+        if len(pdf) < 10:
+            return {"skipped": True, "reason": "Dati insufficienti"}
+            
+        X = add_constant(pdf)
+        vif_scores = []
+        high_vif = []
+        for i in range(1, X.shape[1]):
+            v = variance_inflation_factor(X.values, i)
+            col_name = X.columns[i]
+            vif_scores.append({"feature": col_name, "vif": round(float(v), 2)})
+            if v > 10.0:
+                high_vif.append(col_name)
+                
+        return {"vif_scores": vif_scores, "high_vif": high_vif}
+    except Exception as e:
+        return {"skipped": True, "error": str(e)}
+
+def _detect_target_leakage(df: pl.DataFrame, cols: list[str], target: str) -> list[dict]:
+    leakage = []
+    if df[target].dtype not in (pl.Float32, pl.Float64, pl.Int32, pl.Int64):
+        return leakage
+        
+    for c in cols:
+        if c == target:
+            continue
+        try:
+            pair = df.select([pl.col(c).cast(pl.Float64), pl.col(target).cast(pl.Float64)]).drop_nulls()
+            if len(pair) > 10:
+                r, _ = pearsonr(pair[c].to_numpy(), pair[target].to_numpy())
+                if abs(r) > 0.98:
+                    leakage.append({"col": c, "correlation_with_target": round(float(r), 4)})
+        except Exception:
+            pass
+    return leakage
+
+def _generate_ai_comment(pca: dict, vif_data: dict, target_leakage: list[dict]) -> list[dict]:
+    comments = []
+    
+    if target_leakage:
+        cols = [t["col"] for t in target_leakage]
+        comments.append({
+            "role": "ml_engineer",
+            "insight": f"Attenzione: potenziale target leakage rilevato per {', '.join(cols)} (|r|>0.98 col target). Verificare che non derivino dal target."
+        })
+        
+    if vif_data.get("high_vif"):
+        comments.append({
+            "role": "ml_engineer",
+            "insight": f"Rilevata alta multicollinearità (VIF > 10) nelle feature: {', '.join(vif_data['high_vif'][:3])}. Riconsiderare l'inclusione di queste variabili nei modelli lineari."
+        })
+        
+    if pca.get("components"):
+        pca_comment = pca.get("ai_comment", [])
+        if pca_comment:
+            comments.extend(pca_comment)
+            
+    if not comments:
+        comments.append({
+            "role": "data_scientist",
+            "insight": "Nessuna anomalia multivariata di rilievo (leakage o multicollinearità). Dataset pronto per l'analisi delle componenti o ML."
+        })
+        
+    return comments

@@ -34,18 +34,19 @@ function NavItem({ icon, label, active, disabled = false, onClick }: NavItemProp
       type="button"
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
-      className={`flex items-center w-full text-left gap-3 px-4 py-2.5 font-headline text-xs uppercase tracking-wider transition-colors
+      className={`
+        flex items-center w-full text-left gap-3 px-4 py-2.5 font-headline text-xs uppercase tracking-wider transition-colors duration-180
         ${active
-          ? 'bg-neutral-800 text-[--color-primary] border-r-4 border-[--color-primary] font-bold'
+          ? 'bg-[--color-surface-2] text-[--color-primary] border-r-4 border-[--color-primary] font-bold'
           : disabled
-            ? 'text-neutral-600 cursor-not-allowed'
-            : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
+            ? 'text-[--color-text-faint] cursor-not-allowed'
+            : 'text-[--color-text-muted] hover:text-[--color-text] hover:bg-[--color-surface-offset]'
         }
       `}
     >
       <span className="shrink-0 w-4 h-4 flex items-center justify-center">{icon}</span>
       <span className="truncate">{label}</span>
-      {active && <span className="ml-auto text-[8px] bg-[--color-primary]/10 text-[--color-primary] px-1.5 py-0.5 rounded font-bold">ACTIVE</span>}
+      {active ? <span className="ml-auto text-[8px] bg-[--color-primary]/10 text-[--color-primary] px-1.5 py-0.5 rounded font-bold">ACTIVE</span> : null}
     </button>
   )
 }
@@ -61,20 +62,20 @@ function AnalysisProgress() {
   if (status === 'idle') return null
 
   return (
-    <div className="px-4 py-3 border-t border-neutral-800">
+    <div className="px-4 py-3 border-t border-[--color-divider]">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] uppercase font-bold text-neutral-500 tracking-wider">
+        <span className="text-[10px] uppercase font-bold text-[--color-text-muted] tracking-wider">
           Analisi Status
         </span>
-        <span className="text-[10px] font-bold text-[--color-primary]">
+        <span className="text-[10px] font-bold text-[--color-primary] tabular-nums">
           {overallProgress}%
         </span>
       </div>
 
-      <div className="h-1 rounded-full bg-neutral-800 overflow-hidden mb-3">
+      <div className="h-1.5 rounded-full bg-[--color-surface-offset] overflow-hidden mb-3">
         <div
-          className="h-full bg-[--color-primary]"
-          style={{ width: `${overallProgress}%`, transition: 'width 300ms ease' }}
+          className="h-full rounded-full bg-[--color-primary] transition-all duration-300 ease-out"
+          style={{ width: `${overallProgress}%` }}
         />
       </div>
 
@@ -86,11 +87,11 @@ function AnalysisProgress() {
 
           return (
             <div key={mod} className="flex justify-between items-center text-[10px] font-headline tracking-wider">
-              <span className={`truncate ${done ? 'text-neutral-400' : running ? 'text-white font-bold' : 'text-neutral-600'}`}>
+              <span className={`truncate ${done ? 'text-[--color-text-muted]' : running ? 'text-[--color-text] font-bold' : 'text-[--color-text-faint]'}`}>
                 {MODULE_LABELS[mod] ?? mod}
               </span>
               {(running || done) && (
-                <span className={done ? 'text-green-500' : 'text-[--color-primary]'}>
+                <span className={done ? 'text-[--color-success]' : 'text-[--color-primary]'}>
                   {done ? 'DONE' : `${pct}%`}
                 </span>
               )}
@@ -114,16 +115,16 @@ export function Sidebar() {
   const canReport = hasResult
 
   return (
-    <aside className="fixed left-0 top-0 h-full flex flex-col bg-neutral-900 w-64 border-r border-neutral-800 shadow-xl z-50 overflow-hidden">
+    <aside className="fixed left-0 top-0 h-full flex flex-col bg-[--color-bg] w-64 border-r border-[--color-divider] shadow-lg z-50 overflow-hidden">
       {/* Brand Header */}
       <div className="p-6">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-8 h-8 bg-[--color-primary] flex items-center justify-center rounded">
+          <div className="w-8 h-8 bg-[--color-primary] flex items-center justify-center rounded-[--radius-md] shadow-sm">
             <Grid3x3 className="text-white w-5 h-5" />
           </div>
-          <h1 className="text-xl font-bold text-white tracking-tighter font-headline">Quantedge Matrix</h1>
+          <h1 className="text-xl font-bold text-[--color-text] tracking-tight font-headline">Quantedge Matrix</h1>
         </div>
-        <p className="font-headline text-[10px] tracking-[0.1em] text-neutral-500 uppercase">
+        <p className="font-headline text-[10px] tracking-[0.1em] text-[--color-text-muted] uppercase">
           v2.4 Enterprise — dareeda
         </p>
       </div>
@@ -131,7 +132,7 @@ export function Sidebar() {
       {/* Primary Navigation */}
       <nav className="flex-1 mt-2 overflow-y-auto custom-scrollbar">
         <div className="mb-4">
-          <p className="px-4 text-[10px] font-bold text-neutral-600 uppercase tracking-widest mb-2">Main Menu</p>
+          <p className="px-4 text-[10px] font-bold text-[--color-text-faint] uppercase tracking-widest mb-2">Main Menu</p>
           <NavItem
             icon={<Upload className="w-4 h-4" />}
             label="Carica Dataset"
@@ -166,15 +167,15 @@ export function Sidebar() {
           />
         </div>
 
-        {analysisStatus !== 'idle' && <AnalysisProgress />}
+        {analysisStatus !== 'idle' ? <AnalysisProgress /> : null}
       </nav>
 
       {/* Footer Navigation */}
-      <div className="mt-auto border-t border-neutral-800 py-4">
-        <button className="w-full flex items-center gap-3 px-4 py-2.5 text-neutral-400 hover:text-white transition-colors font-headline text-xs uppercase tracking-wider">
+      <div className="mt-auto border-t border-[--color-divider] py-4">
+        <button className="w-full flex items-center gap-3 px-4 py-2.5 text-[--color-text-muted] hover:text-[--color-text] transition-colors font-headline text-xs uppercase tracking-wider">
           <Settings className="w-4 h-4" /> Settings
         </button>
-        <button className="w-full flex items-center gap-3 px-4 py-2.5 text-neutral-400 hover:text-white transition-colors font-headline text-xs uppercase tracking-wider">
+        <button className="w-full flex items-center gap-3 px-4 py-2.5 text-[--color-text-muted] hover:text-[--color-text] transition-colors font-headline text-xs uppercase tracking-wider">
           <HelpCircle className="w-4 h-4" /> Support
         </button>
       </div>

@@ -4,7 +4,7 @@ REPORT=".qa/a11y/reports/${DATE}_a11y.md"
 
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
 
-echo "# A11y Report\n**Data:** ${DATE}\n" >> "$REPORT"
+echo "# A11y Report\n**Data:** ${DATE}\n" > "$REPORT"
 echo "Standard: WCAG 2.1 AA\n" >> "$REPORT"
 
 if command -v pa11y >/dev/null 2>&1; then

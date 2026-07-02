@@ -20,9 +20,7 @@ export type BadgeSize = 'sm' | 'md'
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   variant?:  BadgeVariant
   size?:     BadgeSize
-  /** Dot colorato a sinistra del testo */
   dot?:      boolean
-  /** Icona a sinistra (sostituisce dot se entrambi presenti) */
   icon?:     ReactNode
 }
 
@@ -31,8 +29,7 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 // ╚══════════════════════════════════════════════════════════════════════════╝
 
 const BASE =
-  'inline-flex items-center gap-1.5 font-medium rounded-[--radius-full] ' +
-  'border leading-none whitespace-nowrap'
+  'inline-flex items-center gap-1.5 font-medium rounded-[--radius-full] border leading-none whitespace-nowrap'
 
 const VARIANT: Record<BadgeVariant, { badge: string; dot: string }> = {
   default: {
@@ -52,23 +49,23 @@ const VARIANT: Record<BadgeVariant, { badge: string; dot: string }> = {
     dot:   'bg-[--color-success]',
   },
   warning: {
-    badge: 'bg-[--color-warning-highlight] border-[--color-warning-highlight] text-[--color-warning]',
+    badge: 'bg-[--color-warning-light] border-[--color-warning] text-[--color-warning]',
     dot:   'bg-[--color-warning]',
   },
   error: {
-    badge: 'bg-[--color-error-highlight] border-[--color-error-highlight] text-[--color-error]',
+    badge: 'bg-[--color-error-light] border-[--color-error] text-[--color-error]',
     dot:   'bg-[--color-error]',
   },
   info: {
-    badge: 'bg-[--color-blue-highlight] border-[--color-blue-highlight] text-[--color-blue]',
-    dot:   'bg-[--color-blue]',
+    badge: 'bg-[--color-info-light] border-[--color-info] text-[--color-info]',
+    dot:   'bg-[--color-info]',
   },
   purple: {
-    badge: 'bg-[--color-purple-highlight] border-[--color-purple-highlight] text-[--color-purple]',
+    badge: 'bg-[--color-purple-light] border-[--color-purple] text-[--color-purple]',
     dot:   'bg-[--color-purple]',
   },
   orange: {
-    badge: 'bg-[--color-orange-highlight] border-[--color-orange-highlight] text-[--color-orange]',
+    badge: 'bg-[--color-orange-light] border-[--color-orange] text-[--color-orange]',
     dot:   'bg-[--color-orange]',
   },
 }
@@ -123,13 +120,6 @@ export const SEMANTIC_TYPE_LABEL: Record<string, string> = {
 
 /**
  * Badge / chip per label, stati, tipi semantici e metriche.
- *
- * @example
- * <Badge variant="success" dot>Completato</Badge>
- * <Badge variant="error" size="sm">Errore</Badge>
- * <Badge variant={SEMANTIC_TYPE_VARIANT[col.semantic_type]}>
- *   {SEMANTIC_TYPE_LABEL[col.semantic_type]}
- * </Badge>
  */
 export function Badge({
   variant   = 'default',
@@ -176,10 +166,6 @@ interface SemanticTypeBadgeProps {
 /**
  * Shortcut per mostrare il tipo semantico di una colonna EDA
  * con colore e label corretti in automatico.
- *
- * @example
- * <SemanticTypeBadge type="numeric_continuous" />
- * <SemanticTypeBadge type={col.semantic_type} size="sm" />
  */
 export function SemanticTypeBadge({
   type,

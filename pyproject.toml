@@ -19,7 +19,8 @@ dependencies = [
     "scikit-learn>=1.6.0",
     "scipy>=1.15.0",
     "statsmodels>=0.14.0",
-    "kaleido>=0.2.1",
+    # ponytail: 0.2.x include binari Chromium con CVE note, 1.0.0 riscritto da zero
+    "kaleido>=1.0.0",
     "plotly>=6.0.0",
     "python-dotenv>=1.0.0",
     "pydantic-settings>=2.0.0",
@@ -38,7 +39,7 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = [".qa/unit/tests", ".qa/integration/tests"]
 pythonpath = ["backend", ".qa/unit/tests"]
-addopts = "-v --cov=backend --cov-report=term-missing --cov-report=json:.qa/coverage/reports/coverage.json --cov-fail-under=75"
+addopts = "-v --cov=backend --cov-report=term-missing --cov-report=json:.qa/coverage/reports/coverage.json --cov-fail-under=95"
 
 [tool.coverage.run]
 omit = [

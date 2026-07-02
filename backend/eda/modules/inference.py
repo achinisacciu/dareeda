@@ -97,15 +97,22 @@ def _cohens_d_label(d):
 
 
 def _fdr_correction(results):
+    """Benjamini-Hochberg step-up procedure. Trova il max k con p(k) <= k/n * alpha."""
     if not results:
         return results
     pvals = np.array([r["pvalue"] for r in results])
     n = len(pvals)
     order = np.argsort(pvals)
-    bh_thresholds = [(i + 1) / n * 0.05 for i in range(n)]
+    sorted_p = pvals[order]
+    # ponytail: BH step-up — trova il massimo rango k che soddisfa la soglia
+    thresholds = np.arange(1, n + 1) / n * 0.05
+    below = sorted_p <= thresholds
+    max_k = np.where(below)[0][-1] + 1 if below.any() else 0
+    # Tutti i p-value con rango <= max_k sono significativi
     significant_fdr = np.zeros(n, dtype=bool)
     for rank, idx in enumerate(order):
-        significant_fdr[idx] = pvals[idx] <= bh_thresholds[rank]
+        if rank < max_k:
+            significant_fdr[idx] = True
     for i, r in enumerate(results):
         r["significant_fdr"] = bool(significant_fdr[i])
     return results

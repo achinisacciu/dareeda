@@ -119,7 +119,7 @@ export function EmptyState({
       {icon && (
         <span
           className={[
-            'flex items-center justify-center text-[--color-text-faint]',
+            'flex items-center justify-center text-[--color-text-faint] transition-transform duration-180 hover:scale-105',
             compact ? 'mb-0' : 'mb-[--space-2]',
           ].join(' ')}
           aria-hidden="true"

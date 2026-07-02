@@ -40,3 +40,10 @@ logs/
 .vscode/
 *.swp
 *.swo
+
+# ── File interni / di lavoro (non pubblici) ──────────────────────────────────
+.kilo/
+artifacts/
+drawio-skill/
+qa-report.md
+backend/**/*.txt

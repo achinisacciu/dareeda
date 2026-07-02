@@ -1,15 +1,28 @@
-# Abbiamo rimosso 'datasets' e 'projects'
+from contextlib import asynccontextmanager
+
 from api.routes import analysis, health, reports
+from core.config import _init_dirs, settings
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # ponytail: init dirs all'avvio, non a import-time
+    _init_dirs()
+    yield
+
+
 app = FastAPI(
-    title="DAREEDA API", description="Dati puri. Flussi solidi. Nessun database.", version="1.0.0"
+    title="DAREEDA API",
+    description="Dati puri. Flussi solidi. Nessun database.",
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

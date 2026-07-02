@@ -25,7 +25,8 @@ export type AnalysisStatus = 'idle' | 'running' | 'complete' | 'error'
 export type UploadStatus   = 'idle' | 'uploading' | 'success' | 'error'
 
 export interface AnalysisState {
-  projects:         ProjectSummary[]
+  projects:         Record<string, ProjectSummary>
+  projectIds:       string[]
   currentProject:   ProjectDetail | null
   result:           AnalysisResult | null
 
@@ -94,7 +95,8 @@ function makeProject(resp: UploadResponse): ProjectDetail {
 // ── Store ─────────────────────────────────────────────────────────────────────
 
 export const useAnalysisStore = create<AnalysisState>()((set, get) => ({
-  projects:         [],
+  projects:         {},
+  projectIds:       [],
   currentProject:   null,
   result:           null,
   analysisStatus:   'idle',
@@ -114,7 +116,7 @@ export const useAnalysisStore = create<AnalysisState>()((set, get) => ({
   // Seleziona da in-memory, senza chiamate API
   selectProject: async (projectId) => {
     const { projects } = get()
-    const found = projects.find((p) => p.id === projectId)
+    const found = projects[projectId]
     if (!found) {
       toast.error('Progetto non trovato', 'Il file potrebbe essere scaduto dalla cache del backend.')
       return
@@ -138,19 +140,24 @@ export const useAnalysisStore = create<AnalysisState>()((set, get) => ({
     try {
       const resp    = await uploadApi.upload(file, (pct) => set({ uploadProgress: pct }))
       const project = makeProject(resp)
-      set((state) => ({
-        uploadStatus:     'success',
-        uploadProgress:   100,
-        currentProject:   project,
-        result:           null,
-        analysisStatus:   'idle',
-        currentModule:    null,
-        currentModulePct: 0,
-        completedModules: [],
-        moduleProgress:   {},
-        moduleMessages:   {},
-        projects: [project, ...state.projects.filter((p) => p.id !== resp.file_id)],
-      }))
+      set((state) => {
+        const projects = { ...state.projects, [resp.file_id]: project }
+        const projectIds = [resp.file_id, ...state.projectIds.filter((id) => id !== resp.file_id)]
+        return {
+          uploadStatus:     'success',
+          uploadProgress:   100,
+          currentProject:   project,
+          result:           null,
+          analysisStatus:   'idle',
+          currentModule:    null,
+          currentModulePct: 0,
+          completedModules: [],
+          moduleProgress:   {},
+          moduleMessages:   {},
+          projects,
+          projectIds,
+        }
+      })
       toast.success('File caricato', resp.filename)
     } catch (err) {
       set({ uploadStatus: 'error', uploadProgress: 0 })
@@ -165,8 +172,12 @@ export const useAnalysisStore = create<AnalysisState>()((set, get) => ({
     analysisApi.evict(projectId).catch(() => undefined)
     set((state) => {
       const isCurrent = state.currentProject?.id === projectId
+      const projects = { ...state.projects }
+      delete projects[projectId]
+      const projectIds = state.projectIds.filter((id) => id !== projectId)
       return {
-        projects:         state.projects.filter((p) => p.id !== projectId),
+        projects,
+        projectIds,
         currentProject:   isCurrent ? null   : state.currentProject,
         result:           isCurrent ? null   : state.result,
         analysisStatus:   isCurrent ? 'idle' : state.analysisStatus,
@@ -187,10 +198,13 @@ export const useAnalysisStore = create<AnalysisState>()((set, get) => ({
       ...currentProject,
       context: { ...currentProject.context, ...ctx },
     }
-    set({
+    set((state) => ({
       currentProject: updated,
-      projects: projects.map((p) => p.id === updated.id ? { ...p, context: updated.context } : p),
-    })
+      projects: {
+        ...state.projects,
+        [updated.id]: { ...state.projects[updated.id], context: updated.context },
+      },
+    }))
   },
 
   runAnalysis: () => {
@@ -238,20 +252,25 @@ export const useAnalysisStore = create<AnalysisState>()((set, get) => ({
 
       onComplete: (result) => {
         _sse = null
-        set((state) => ({
-          analysisStatus:   'complete',
-          result,
-          currentModule:    null,
-          currentModulePct: 100,
-          completedModules: uniq([...state.completedModules, ...ANALYSIS_MODULE_ORDER]),
-          moduleProgress:   Object.fromEntries(ANALYSIS_MODULE_ORDER.map((m) => [m, 100])),
-          currentProject: state.currentProject
-            ? { ...state.currentProject, has_result: true }
-            : null,
-          projects: state.projects.map((p) =>
-            p.id === fileId ? { ...p, has_result: true } : p,
-          ),
-        }))
+        set((state) => {
+          const hasCurrent = state.currentProject?.id === fileId
+          const projects = { ...state.projects }
+          if (projects[fileId]) {
+            projects[fileId] = { ...(projects[fileId] as ProjectSummary), has_result: true }
+          }
+          return {
+            analysisStatus:   'complete',
+            result,
+            currentModule:    null,
+            currentModulePct: 100,
+            completedModules: uniq([...state.completedModules, ...ANALYSIS_MODULE_ORDER]),
+            moduleProgress:   Object.fromEntries(ANALYSIS_MODULE_ORDER.map((m) => [m, 100])),
+            currentProject: hasCurrent && state.currentProject
+              ? { ...state.currentProject, has_result: true }
+              : state.currentProject,
+            projects,
+          }
+        })
         toast.success('Analisi completata')
       },
 

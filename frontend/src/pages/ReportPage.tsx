@@ -121,6 +121,15 @@ export default function ReportPage() {
     }
   }, [])
 
+  // Revoca il blob precedente quando se ne crea uno nuovo
+  useEffect(() => {
+    if (prevBlobRef.current) {
+      URL.revokeObjectURL(prevBlobRef.current)
+      prevBlobRef.current = null
+    }
+    if (blobUrl) prevBlobRef.current = blobUrl
+  }, [blobUrl])
+
   // Azzera il report quando cambia progetto
   useEffect(() => {
     if (prevBlobRef.current) {
@@ -301,7 +310,7 @@ export default function ReportPage() {
         <ModuleSummary result={result} />
 
         {/* ── Anteprima PDF ─────────────────────────────────────────────── */}
-        {blobUrl && <ReportPreview blobUrl={blobUrl} />}
+        {blobUrl ? <ReportPreview blobUrl={blobUrl} /> : null}
 
         {/* ── Placeholder ───────────────────────────────────────────────── */}
         {!blobUrl && !isGenerating && (

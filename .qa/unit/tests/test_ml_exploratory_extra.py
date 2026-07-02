@@ -3,6 +3,7 @@
 # Creato: 2026-06-14
 # Aggiornato: 2026-06-14
 
+import numpy as np
 import polars as pl
 import pytest
 from eda.modules.ml_exploratory import _anomaly, _clustering, run, validate_target
@@ -67,7 +68,6 @@ def test_anomaly_detection_runs_with_enough_features(ml_df):
 
 def test_mutual_info_aligns_target_with_filtered_rows():
     """Rows dropped by the NaN mask must use matching target values."""
-    import numpy as np
     from eda.modules.ml_exploratory import _mutual_info
 
     df = pl.DataFrame({

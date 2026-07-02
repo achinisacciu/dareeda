@@ -133,19 +133,45 @@ export interface SSEPostOptions<T> {
   onOpen?: () => void
 }
 
-export function connectSSEPost<T = unknown>(opts: SSEPostOptions<T>): SSEHandle {
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  retries = 2,
+  baseMs = 500,
+): Promise<T> {
+  let attempt = 0
+  let lastErr: unknown
+  while (attempt <= retries) {
+    try {
+      return await fn()
+    } catch (err) {
+      lastErr = err
+      if (attempt === retries) break
+      const backoff = baseMs * 2 ** attempt + Math.random() * 200
+      await sleep(backoff)
+      attempt++
+    }
+  }
+  throw lastErr as Error
+}
+
+export function connectSSEPost<_T = Record<string, unknown>>(opts: SSEPostOptions<_T>): SSEHandle {
   const controller = new AbortController()
   let closed = false
 
   const url = `${BASE_URL}${API_PREFIX}${opts.path}`
 
-  fetch(url, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
-    body:    JSON.stringify(opts.body),
-    signal:  controller.signal,
-  })
-    .then(async (response) => {
+  const run = () =>
+    withRetry(async () => {
+      const response = await fetch(url, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+        body:    JSON.stringify(opts.body),
+        signal:  controller.signal,
+      })
       if (!response.ok) {
         const text = await response.text().catch(() => '')
         let detail = text
@@ -190,11 +216,12 @@ export function connectSSEPost<T = unknown>(opts: SSEPostOptions<T>): SSEHandle 
         }
       }
     })
-    .catch((err: unknown) => {
-      if (closed) return
-      if (err instanceof DOMException && err.name === 'AbortError') return
-      opts.onError(err instanceof Error ? err : new Error(String(err)))
-    })
+
+  run().catch((err: unknown) => {
+    if (closed) return
+    if (err instanceof DOMException && err.name === 'AbortError') return
+    opts.onError(err instanceof Error ? err : new Error(String(err)))
+  })
 
   return {
     close: () => {

@@ -1,4 +1,9 @@
-import React, { forwardRef, type HTMLAttributes, type KeyboardEvent, type ReactNode } from 'react'
+import React, {
+  forwardRef,
+  type HTMLAttributes,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react'
 
 // ╔══════════════════════════════════════════════════════════════════════════╗
 // ║  Card.tsx                                                                ║
@@ -39,7 +44,7 @@ function buildCardClasses(
   selected: boolean,
   extra?: string,
 ): string {
-  const base = 'relative rounded-[--radius-xl] transition-[box-shadow,border-color,background] duration-[180ms]'
+  const base = 'relative rounded-[--radius-card] transition-[box-shadow,border-color,background] duration-[180ms]'
   const variants = {
     default: [
       'bg-[--color-surface] border border-[--color-border]',
@@ -110,7 +115,7 @@ export function CardHeader({ title, description, action, className, children }: 
           </p>
         )}
       </div>
-      {action && <div className="shrink-0 flex items-center gap-[--space-2]">{action}</div>}
+      {action ? <div className="shrink-0 flex items-center gap-[--space-2]">{action}</div> : null}
     </div>
   )
 }

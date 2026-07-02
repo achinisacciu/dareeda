@@ -1,5 +1,5 @@
 import {
-  useEffect, useRef, useCallback,
+  useEffect, useRef,
   type KeyboardEvent, type ReactElement, type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
@@ -9,7 +9,7 @@ import { toast } from '@/stores/uiStore'
 import { Button } from '@/components/ui/Button'
 import type { ModalId } from '@/stores/uiStore'
 import type { ProblemType } from '@/types/analysis'
-import { ANALYSIS_MODULE_ORDER } from '@/api/analysis'
+import { ANALYSIS_MODULE_ORDER, reportsApi } from '@/api/analysis'
 
 // ╔══════════════════════════════════════════════════════════════════════════╗
 // ║  Base Modal shell                                                        ║
@@ -302,8 +302,8 @@ const SECTION_LABELS: Record<string, string> = {
 }
 
 function ReportSectionsModal({ onClose }: { onClose: () => void }) {
-  const generateReport = useAnalysisStore((s) => s.result)
-  const openModal      = useUIStore((s) => s.openModal)
+  const result         = useAnalysisStore((s) => s.result)
+  const setActivePage  = useUIStore((s) => s.setActivePage)
   const selectedRef    = useRef<Set<string>>(new Set(ANALYSIS_MODULE_ORDER))
 
   function toggle(mod: string) {
@@ -312,7 +312,25 @@ function ReportSectionsModal({ onClose }: { onClose: () => void }) {
   }
 
   function handleGenerate() {
-    toast.info('Generazione report avviata…')
+    if (!result) return
+    const data: Record<string, unknown> = {}
+    if (result.overview)        data.overview        = result.overview
+    if (result.data_quality)    data.data_quality    = result.data_quality
+    if (result.univariate)      data.univariate      = result.univariate
+    if (result.bivariate)       data.bivariate       = result.bivariate
+    if (result.multivariate)    data.multivariate    = result.multivariate
+    if (result.timeseries)      data.timeseries      = result.timeseries
+    if (result.ml_exploratory)  data.ml_exploratory  = result.ml_exploratory
+    if (result.enterprise)      data.enterprise      = result.enterprise
+    if (result.insights)        data.insights        = result.insights
+    if (result.meta)            data.meta            = result.meta
+    if (result.feature_engineering) data.feature_engineering = result.feature_engineering
+    reportsApi.generatePdf(data)
+      .then(() => {
+        toast.success('Report generato', 'Il PDF è pronto per il download.')
+        setActivePage('report')
+      })
+      .catch((err) => toast.error('Generazione fallita', err.message))
     onClose()
   }
 

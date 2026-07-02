@@ -48,17 +48,17 @@ function AnalysisHeader() {
           <h1 className="text-xl font-bold font-headline text-[--color-on-surface] truncate tracking-tight">
             {currentProject?.filename ?? 'Dataset non caricato'}
           </h1>
-          {analysisStatus === 'complete' && <Badge variant="success" size="sm" dot>Completata</Badge>}
-          {analysisStatus === 'error' && <Badge variant="error" size="sm" dot>Errore</Badge>}
-          {isRunning && <Badge variant="info" size="sm" dot>In corso</Badge>}
+          {analysisStatus === 'complete' ? <Badge variant="success" size="sm" dot>Completata</Badge> : null}
+          {analysisStatus === 'error' ? <Badge variant="error" size="sm" dot>Errore</Badge> : null}
+          {isRunning ? <Badge variant="info" size="sm" dot>In corso</Badge> : null}
         </div>
 
-        {currentProject && (
+        {currentProject ? (
           <div className="flex items-center gap-2 text-xs font-medium text-[--color-on-surface-variant]">
             <span className="tabular-nums font-mono bg-neutral-100 px-1.5 py-0.5 rounded">{num(currentProject.n_rows)} righe</span>
             <span className="tabular-nums font-mono bg-neutral-100 px-1.5 py-0.5 rounded">{currentProject.n_cols ?? '—'} colonne</span>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Right: actions */}
@@ -114,7 +114,7 @@ function RunningProgressBar() {
           <span className="font-bold text-[--color-on-surface] uppercase tracking-widest">
             {currentModule ? currentModule.replace(/_/g, ' ') : 'Analisi in corso'}
           </span>
-          {msg && <span className="text-neutral-500 font-medium truncate max-w-sm ml-2">— {msg}</span>}
+          {msg ? <span className="text-neutral-500 font-medium truncate max-w-sm ml-2">— {msg}</span> : null}
         </div>
         <span className="font-headline font-bold text-sm text-[--color-primary]">
           {overallProgress}%
@@ -189,19 +189,19 @@ export default function AnalysisPage() {
 
         {result && (
           <div className="h-full pb-8">
-            {activeTab === 'overview' && <OverviewTab result={result} />}
-            {activeTab === 'data_quality' && <DataQualityTab result={result} />}
-            {activeTab === 'univariate' && <UnivariateTab result={result} />}
-            {activeTab === 'bivariate' && <ChartGridTab data={result.bivariate} title="Analisi Bivariata" />}
-            {activeTab === 'multivariate' && <ChartGridTab data={result.multivariate} title="Analisi Multivariata" />}
-            {activeTab === 'timeseries' && <ChartGridTab data={result.timeseries} title="Time Series" />}
-            {activeTab === 'ml_exploratory' && <ChartGridTab data={result.ml_exploratory} title="ML Exploratory" />}
-            {activeTab === 'enterprise' && <ChartGridTab data={result.enterprise} title="Enterprise Patterns" />}
-            {activeTab === 'insights' && (
+            {activeTab === 'overview' ? <OverviewTab result={result} /> : null}
+            {activeTab === 'data_quality' ? <DataQualityTab result={result} /> : null}
+            {activeTab === 'univariate' ? <UnivariateTab result={result} /> : null}
+            {activeTab === 'bivariate' ? <ChartGridTab data={result.bivariate} title="Analisi Bivariata" /> : null}
+            {activeTab === 'multivariate' ? <ChartGridTab data={result.multivariate} title="Analisi Multivariata" /> : null}
+            {activeTab === 'timeseries' ? <ChartGridTab data={result.timeseries} title="Time Series" /> : null}
+            {activeTab === 'ml_exploratory' ? <ChartGridTab data={result.ml_exploratory} title="ML Exploratory" /> : null}
+            {activeTab === 'enterprise' ? <ChartGridTab data={result.enterprise} title="Enterprise Patterns" /> : null}
+            {activeTab === 'insights' ? (
                <div className="p-12 text-center text-neutral-400">
                  <p className="text-xl">Sezione Insights da completare secondo specifiche business.</p>
                </div>
-            )}
+            ) : null}
           </div>
         )}
       </div>

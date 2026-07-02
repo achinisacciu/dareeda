@@ -4,15 +4,14 @@ import {
 } from 'react'
 import { useAnalysisStore } from '@/stores/analysisStore'
 import { useUIStore } from '@/stores/uiStore'
-import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Card, CardBody } from '@/components/ui/Card'
 import type { ProjectSummary } from '@/api/analysis'
-import { UploadCloud, FileText, Trash2, ChevronRight, FolderArchive, ArrowRight } from 'lucide-react'
+import { UploadCloud, FileText, Trash2, ChevronRight, FolderArchive } from 'lucide-react'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const ACCEPTED_EXTENSIONS = ['.csv', '.parquet', '.pq']
+const ACCEPTED_EXTENSIONS = ['.csv', '.parquet']
 
 function isAccepted(file: File): boolean {
   const name = file.name.toLowerCase()
@@ -82,6 +81,7 @@ function DropZone({ onFile, isUploading, uploadPct, uploadError }: DropZoneProps
   function onDrop(e: DragEvent) {
     e.preventDefault()
     setIsDragging(false)
+    if (isUploading) return
     handleFile(e.dataTransfer.files[0])
   }
 
@@ -216,7 +216,7 @@ function ProjectCard({ project, isCurrent, onSelect, onDelete, isLoading }: Proj
               {formatRows(project.n_rows)} × {project.n_cols ?? '—'}
             </span>
             <Badge variant="muted" size="sm">{ext.toUpperCase()}</Badge>
-            {project.has_result && <Badge variant="success" size="sm" dot>Analizzato</Badge>}
+            {project.has_result ? <Badge variant="success" size="sm" dot>Analizzato</Badge> : null}
           </div>
 
           <div className="flex items-center justify-between gap-2 mt-2 pt-4 border-t border-neutral-100">
@@ -283,6 +283,8 @@ function ProjectsList({ projects, currentId, loadingId, onSelect, onDelete }: Pr
 
 export default function UploadPage() {
   const projects        = useAnalysisStore((s) => s.projects)
+  const projectIds      = useAnalysisStore((s) => s.projectIds)
+  const projectCount    = projectIds.length
   const currentProject  = useAnalysisStore((s) => s.currentProject)
   const uploadStatus    = useAnalysisStore((s) => s.uploadStatus)
   const uploadProgress  = useAnalysisStore((s) => s.uploadProgress)
@@ -352,22 +354,19 @@ export default function UploadPage() {
           <div className="flex items-center justify-between mb-6">
             <h2 id="projects-heading" className="text-xl font-bold font-headline text-[--color-on-surface]">
               Progetti Recenti
-              {projects.length > 0 && (
-                <span className="text-[--color-primary] ml-2 font-black">{projects.length}</span>
+              {projectCount > 0 && (
+                <span className="text-[--color-primary] ml-2 font-black">{projectCount}</span>
               )}
             </h2>
-            <Button variant="ghost" className="text-[--color-primary] text-xs font-bold tracking-widest uppercase">
-              Visualizza Tutti <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
           </div>
 
-          <ProjectsList
-            projects={projects}
-            currentId={currentProject?.id ?? null}
-            loadingId={loadingId}
-            onSelect={handleSelectProject}
-            onDelete={handleDeleteProject}
-          />
+        <ProjectsList
+          projects={projectIds.flatMap((id) => projects[id] ? [projects[id]] : [])}
+          currentId={currentProject?.id ?? null}
+          loadingId={loadingId}
+          onSelect={handleSelectProject}
+          onDelete={handleDeleteProject}
+        />
         </section>
 
       </div>

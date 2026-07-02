@@ -5,7 +5,7 @@ import {
 } from 'react'
 
 // ╔══════════════════════════════════════════════════════════════════════════╗
-// ║  Button.tsx                                                              ║
+// ║  Button.tsx — design system coerente, micro-interazioni, a11y          ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger'
@@ -22,24 +22,27 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean
 }
 
-// ── Stili ─────────────────────────────────────────────────────────────────────
+// ── Base classi ────────────────────────────────────────────────────────────────
 
 const BASE =
   'inline-flex items-center justify-center gap-2 font-medium rounded-[--radius-md] ' +
-  'border transition-[color,background-color,border-color,box-shadow] duration-[180ms] ' +
+  'border transition-all duration-180 ease-ui ' +
   'focus-visible:outline-2 focus-visible:outline-[--color-primary] focus-visible:outline-offset-2 ' +
-  'select-none whitespace-nowrap cursor-pointer disabled:opacity-50 disabled:pointer-events-none'
+  'select-none whitespace-nowrap ' +
+  'active:scale-[0.97] ' +
+  'disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 ' +
+  'min-h-[44px]' // touch target WCAG
 
 const VARIANT: Record<ButtonVariant, string> = {
   primary:
     'bg-[--color-primary] border-[--color-primary] text-[--color-text-inverse] ' +
-    'hover:bg-[--color-primary-hover] hover:border-[--color-primary-hover] ' +
-    'active:bg-[--color-primary-active] active:border-[--color-primary-active] ' +
-    'shadow-[var(--shadow-sm)]',
+    'hover:bg-[--color-primary-hover] hover:border-[--color-primary-hover] hover:shadow-md ' +
+    'active:bg-[--color-primary-active] active:border-[--color-primary-active] active:shadow-sm ' +
+    'shadow-sm',
 
   secondary:
     'bg-[--color-surface-2] border-[--color-border] text-[--color-text] ' +
-    'hover:bg-[--color-surface-offset] hover:border-[--color-border] ' +
+    'hover:bg-[--color-surface-offset] hover:border-[--color-border] hover:shadow-sm ' +
     'active:bg-[--color-surface-offset-2]',
 
   outline:
@@ -54,21 +57,21 @@ const VARIANT: Record<ButtonVariant, string> = {
 
   danger:
     'bg-[--color-error] border-[--color-error] text-[--color-text-inverse] ' +
-    'hover:bg-[--color-error-hover] hover:border-[--color-error-hover] ' +
-    'active:opacity-90 ' +
-    'shadow-[var(--shadow-sm)]',
+    'hover:bg-[--color-error-hover] hover:border-[--color-error-hover] hover:shadow-md ' +
+    'active:opacity-90 active:shadow-sm ' +
+    'shadow-sm',
 }
 
 const SIZE: Record<ButtonSize, string> = {
-  sm: 'h-7  px-[--space-3] text-[length:--text-xs]  [&_svg]:size-3.5',
-  md: 'h-9  px-[--space-4] text-[length:--text-sm]  [&_svg]:size-4',
+  sm: 'h-9  px-[--space-3] text-[length:--text-sm]  [&_svg]:size-3.5',
+  md: 'h-10 px-[--space-4] text-[length:--text-sm]  [&_svg]:size-4',
   lg: 'h-11 px-[--space-6] text-[length:--text-base] [&_svg]:size-[18px]',
 }
 
-// ── Spinner ───────────────────────────────────────────────────────────────────
+// ── Spinner ────────────────────────────────────────────────────────────────────
 
 function Spinner({ size }: { size: ButtonSize }) {
-  const dim = size === 'sm' ? 12 : size === 'md' ? 14 : 16
+  const dim = size === 'sm' ? 14 : size === 'md' ? 16 : 18
   return (
     <svg
       width={dim}
@@ -97,7 +100,7 @@ function Spinner({ size }: { size: ButtonSize }) {
   )
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── Component ──────────────────────────────────────────────────────────────────
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
@@ -117,7 +120,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref,
   ) => {
     const isDisabled = disabled || loading
-    // `icon` è alias di `iconLeft` — iconLeft ha precedenza se entrambi forniti
     const leadingIcon = iconLeft ?? icon
 
     const classes = [BASE, VARIANT[variant], SIZE[size], fullWidth ? 'w-full' : '', className]

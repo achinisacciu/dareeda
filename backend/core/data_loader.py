@@ -2,7 +2,7 @@ from pathlib import Path
 
 import polars as pl
 
-SUPPORTED = {".csv", ".xlsx", ".xls", ".json"}
+SUPPORTED = {".csv", ".xlsx", ".xls", ".json", ".parquet"}
 
 
 def load_file(filepath: str | Path) -> pl.DataFrame:
@@ -14,10 +14,14 @@ def load_file(filepath: str | Path) -> pl.DataFrame:
 
     if ext == ".csv":
         return _load_csv(path)
-    elif ext in (".xlsx", ".xls"):
+    if ext in (".xlsx", ".xls"):
         return _load_excel(path)
-    elif ext == ".json":
+    if ext == ".json":
         return _load_json(path)
+    if ext == ".parquet":
+        return _load_parquet(path)
+
+    raise AssertionError(f"unreachable: estensione {ext} non gestita dopo validazione")
 
 
 def _load_csv(path: Path) -> pl.DataFrame:
@@ -29,8 +33,8 @@ def _load_csv(path: Path) -> pl.DataFrame:
             ignore_errors=True,
             truncate_ragged_lines=True,
         )
-    except Exception:
-        # Fallback con separator auto-detect
+    except pl.exceptions.PolarsError:
+        # Fallback: separatore punto e virgola
         return pl.read_csv(path, separator=";", infer_schema_length=10_000, ignore_errors=True)
 
 
@@ -41,9 +45,13 @@ def _load_excel(path: Path) -> pl.DataFrame:
 def _load_json(path: Path) -> pl.DataFrame:
     try:
         return pl.read_json(path)
-    except Exception:
+    except pl.exceptions.PolarsError:
         # Prova NDJSON (newline-delimited)
         return pl.read_ndjson(path)
+
+
+def _load_parquet(path: Path) -> pl.DataFrame:
+    return pl.read_parquet(path)
 
 
 def get_memory_mb(df: pl.DataFrame) -> float:

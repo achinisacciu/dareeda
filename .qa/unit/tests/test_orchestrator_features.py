@@ -1,10 +1,12 @@
 # Categoria: unit
 # File sorgente: backend/eda/orchestrator.py
 # Creato: 2026-06-14
+# Aggiornato: 2026-06-19
 
 import polars as pl
 import pytest
 
+from backend.core.models import AcceptedFeature
 from backend.eda.orchestrator import _compute_accepted_features
 
 
@@ -20,8 +22,8 @@ def df():
 
 
 def test_compute_accepted_features_revenue(df):
-    result_df, added = _compute_accepted_features(df, [
-        {"name": "rev", "type": "revenue", "source_columns": ["price", "qty"], "formula": "x", "status": "accepted"}
+    result_df, added, warnings = _compute_accepted_features(df, [
+        AcceptedFeature(name="rev", type="revenue", source_columns=["price", "qty"], formula="x", status="accepted")
     ])
     assert "rev" in result_df.columns
     assert added == ["rev"]
@@ -29,8 +31,8 @@ def test_compute_accepted_features_revenue(df):
 
 
 def test_compute_accepted_features_margin(df):
-    result_df, added = _compute_accepted_features(df, [
-        {"name": "marg", "type": "margin", "source_columns": ["price", "cost"], "formula": "x", "status": "accepted"}
+    result_df, added, warnings = _compute_accepted_features(df, [
+        AcceptedFeature(name="marg", type="margin", source_columns=["price", "cost"], formula="x", status="accepted")
     ])
     assert "marg" in result_df.columns
     assert added == ["marg"]
@@ -38,8 +40,8 @@ def test_compute_accepted_features_margin(df):
 
 
 def test_compute_accepted_features_ratio(df):
-    result_df, added = _compute_accepted_features(df, [
-        {"name": "ratio", "type": "ratio", "source_columns": ["price", "qty"], "formula": "x", "status": "accepted"}
+    result_df, added, warnings = _compute_accepted_features(df, [
+        AcceptedFeature(name="ratio", type="ratio", source_columns=["price", "qty"], formula="x", status="accepted")
     ])
     assert "ratio" in result_df.columns
     assert added == ["ratio"]
@@ -47,9 +49,9 @@ def test_compute_accepted_features_ratio(df):
 
 
 def test_compute_accepted_features_discount_percent(df):
-    result_df, added = _compute_accepted_features(df, [
-        {"name": "net", "type": "discount", "source_columns": ["price", "discount"],
-         "formula": "x", "status": "accepted"}
+    result_df, added, warnings = _compute_accepted_features(df, [
+        AcceptedFeature(name="net", type="discount", source_columns=["price", "discount"],
+                        formula="x", status="accepted")
     ])
     assert "net" in result_df.columns
     assert added == ["net"]
@@ -58,9 +60,9 @@ def test_compute_accepted_features_discount_percent(df):
 
 def test_compute_accepted_features_discount_decimal(df):
     df2 = df.with_columns(pl.lit(0.1).alias("disc_dec"))
-    result_df, added = _compute_accepted_features(df2, [
-        {"name": "net", "type": "discount", "source_columns": ["price", "disc_dec"],
-         "formula": "x", "status": "accepted"}
+    result_df, added, warnings = _compute_accepted_features(df2, [
+        AcceptedFeature(name="net", type="discount", source_columns=["price", "disc_dec"],
+                        formula="x", status="accepted")
     ])
     assert "net" in result_df.columns
     assert added == ["net"]

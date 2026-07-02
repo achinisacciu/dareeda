@@ -10,6 +10,7 @@ import numpy as np
 import plotly.graph_objects as go
 import polars as pl
 from scipy import stats as scipy_stats
+import warnings
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +63,8 @@ def _safe_pearsonr(
     x: np.ndarray,
     y: np.ndarray,
 ) -> tuple[float, float]:
-    """Compute Pearson r with a guard for constant arrays."""
-    if np.std(x) == 0 or np.std(y) == 0:
+    """Compute Pearson r with guards for empty/constant arrays."""
+    if len(x) < 2 or len(y) < 2 or np.std(x) == 0 or np.std(y) == 0:
         return 0.0, 1.0
     r, p = scipy_stats.pearsonr(x, y)
     return float(r), float(p)
@@ -73,8 +74,8 @@ def _safe_spearmanr(
     x: np.ndarray,
     y: np.ndarray,
 ) -> tuple[float, float]:
-    """Compute Spearman rho with a guard for constant arrays."""
-    if np.std(x) == 0 or np.std(y) == 0:
+    """Compute Spearman rho with guards for empty/constant arrays."""
+    if len(x) < 2 or len(y) < 2 or np.std(x) == 0 or np.std(y) == 0:
         return 0.0, 1.0
     r, p = scipy_stats.spearmanr(x, y)
     return float(r), float(p)
@@ -97,7 +98,8 @@ def _cramers_v(ct: np.ndarray) -> float:
     phi2 = chi2 / n
     phi2_corr = max(0.0, phi2 - ((k - 1) / (n - 1))) if n > k else phi2
     k_corr = k - ((k - 1) ** 2) / (n - 1) if n > k else k
-    if k_corr <= 0:
+    # ponytail: k_corr==1 causa div-by-zero, coperto dal guard
+    if k_corr <= 1:
         return 0.0
     v = np.sqrt(phi2_corr / (k_corr - 1))
     return float(min(v, 1.0))  # cap at 1.0 for numerical stability
@@ -152,13 +154,12 @@ def _num_num(df: pl.DataFrame, num_cols: list[str]) -> dict[str, Any]:
 
     for i, a in enumerate(cols):
         for b in cols[i + 1 :]:
-            va = df[a].drop_nulls().cast(pl.Float64)
-            vb = df[b].drop_nulls().cast(pl.Float64)
-            n_min = min(len(va), len(vb))
+            valid_df = df.select([a, b]).drop_nulls()
+            n_min = len(valid_df)
             if n_min < _MIN_OBS_CORR:
                 continue
-            arr_a = va[:n_min].to_numpy()
-            arr_b = vb[:n_min].to_numpy()
+            arr_a = valid_df[a].cast(pl.Float64).to_numpy()
+            arr_b = valid_df[b].cast(pl.Float64).to_numpy()
 
             pr, _ = _safe_pearsonr(arr_a, arr_b)
             sr, _ = _safe_spearmanr(arr_a, arr_b)
@@ -236,8 +237,10 @@ def _build_top_scatters(
     for p in top_pairs:
         a, b = p["var_a"], p["var_b"]
         try:
-            arr_a = df[a].drop_nulls().cast(pl.Float64).to_numpy()
-            arr_b = df[b].drop_nulls().cast(pl.Float64).to_numpy()
+            # ponytail: drop_nulls su entrambe le colonne insieme per allineamento riga-per-riga
+            pair = df.select([a, b]).drop_nulls()
+            arr_a = pair[a].cast(pl.Float64).to_numpy()
+            arr_b = pair[b].cast(pl.Float64).to_numpy()
             n = min(len(arr_a), len(arr_b), _MAX_SCATTER_POINTS)
 
             fig = go.Figure()
@@ -282,29 +285,37 @@ def _build_top_scatters(
     return scatters
 
 
-def _comment_num_num(pairs: list[dict[str, Any]]) -> str:
-    """Generate a short natural-language summary of num×num results."""
+def _comment_num_num(pairs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Generate a structured AI comment for num×num results."""
+    comments = []
     if not pairs:
-        return "Analisi bivariata numerica non disponibile (meno di 2 colonne)."
+        comments.append({
+            "role": "data_scientist",
+            "insight": "Analisi bivariata numerica non disponibile (meno di 2 colonne)."
+        })
+        return comments
 
     high = [p for p in pairs if abs(p["pearson_r"]) > _CORR_HIGH]
     multi = [p for p in pairs if abs(p["pearson_r"]) > _CORR_MULTICOL]
-    parts: list[str] = []
 
     if high:
         top = high[0]
-        parts.append(
-            f"La coppia con correlazione più elevata è {top['var_a']} × {top['var_b']} (r={top['pearson_r']})."
-        )
+        comments.append({
+            "role": "data_scientist",
+            "insight": f"La coppia con correlazione più elevata è {top['var_a']} × {top['var_b']} (r={top['pearson_r']})."
+        })
     if multi:
-        parts.append(
-            f"Rilevata potenziale multicollinearità in {len(multi)} coppie (|r|>{_CORR_MULTICOL}). "
-            "Valutare rimozione di feature ridondanti."
-        )
-    if not high:
-        parts.append("Nessuna correlazione lineare forte rilevata tra le variabili numeriche.")
+        comments.append({
+            "role": "ml_engineer",
+            "insight": f"Rilevata potenziale multicollinearità in {len(multi)} coppie (|r|>{_CORR_MULTICOL}). Valutare rimozione di feature ridondanti."
+        })
+    if not high and not multi:
+        comments.append({
+            "role": "data_scientist",
+            "insight": "Nessuna correlazione lineare forte rilevata tra le variabili numeriche."
+        })
 
-    return " ".join(parts)
+    return comments
 
 
 # ── Numeric × Categorical ─────────────────────────────────────────────────────
@@ -339,7 +350,11 @@ def _num_cat(
             except Exception:
                 logger.warning("num×cat failed for %s × %s", num, cat, exc_info=True)
 
-    return {"pairs": results, "charts": charts}
+    return {
+        "pairs": results,
+        "charts": charts,
+        "ai_comment": _comment_num_cat(results)
+    }
 
 
 def _num_cat_one_pair(
@@ -365,17 +380,69 @@ def _num_cat_one_pair(
         vals = df[num].filter(mask).drop_nulls().cast(pl.Float64).to_numpy()
         if len(vals) < _MIN_OBS_GROUP:
             continue
+        # Outlier detection (IQR)
+        q1, q3 = np.percentile(vals, [25, 75])
+        iqr = q3 - q1
+        outliers = (vals < (q1 - 1.5 * iqr)) | (vals > (q3 + 1.5 * iqr))
+        has_outliers = bool(outliers.any())
+
         group_stats.append({
             "group": g,
             "count": len(vals),
             "mean": round(float(vals.mean()), 3),
             "median": round(float(np.median(vals)), 3),
             "std": round(float(vals.std()), 3),
+            "has_outliers": has_outliers,
         })
         group_arrays.append((g, vals))
 
     if len(group_arrays) < 2:
         return None, "", {}
+
+    # ANOVA or Kruskal-Wallis
+    arrays_only = [arr for _, arr in group_arrays]
+    k = len(arrays_only)
+    N = sum(len(arr) for arr in arrays_only)
+    
+    is_normal = True
+    for arr in arrays_only:
+        if len(arr) >= 3:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                _, p_sw = scipy_stats.shapiro(arr)
+            if p_sw < 0.05:
+                is_normal = False
+                break
+        else:
+            is_normal = False
+            break
+
+    stat_test = None
+    if k >= 2 and N > k:
+        if is_normal and k >= 2:
+            stat, p = scipy_stats.f_oneway(*arrays_only)
+            # Eta-squared calculation
+            ss_between = sum(len(arr) * (np.mean(arr) - np.mean(np.concatenate(arrays_only)))**2 for arr in arrays_only)
+            ss_total = sum((x - np.mean(np.concatenate(arrays_only)))**2 for arr in arrays_only for x in arr)
+            eta_sq = ss_between / ss_total if ss_total > 0 else 0
+            stat_test = {
+                "test": "ANOVA",
+                "statistic": round(float(stat), 4),
+                "p_value": round(float(p), 4),
+                "significant": p < 0.05,
+                "effect_size": round(float(eta_sq), 4),
+                "effect_name": "Eta-squared"
+            }
+        else:
+            stat, p = scipy_stats.kruskal(*arrays_only)
+            stat_test = {
+                "test": "Kruskal-Wallis",
+                "statistic": round(float(stat), 4),
+                "p_value": round(float(p), 4),
+                "significant": p < 0.05,
+                "effect_size": None,
+                "effect_name": None
+            }
 
     # Box plot
     fig = go.Figure()
@@ -397,8 +464,36 @@ def _num_cat_one_pair(
     )
 
     chart_key = f"{num}_by_{cat}"
-    result = {"num": num, "cat": cat, "group_stats": group_stats}
+    result = {
+        "num": num,
+        "cat": cat,
+        "group_stats": group_stats,
+        "statistical_test": stat_test,
+        "has_influential_outliers": any(gs.get("has_outliers") for gs in group_stats)
+    }
     return result, chart_key, _fig_to_json(fig)
+
+def _comment_num_cat(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    comments = []
+    if not results:
+        return comments
+
+    significant = [r for r in results if r.get("statistical_test") and r["statistical_test"].get("significant")]
+    if significant:
+        top = sorted(significant, key=lambda x: x["statistical_test"].get("effect_size") or 0, reverse=True)[0]
+        comments.append({
+            "role": "data_scientist",
+            "insight": f"Trovata differenza significativa tra i gruppi. La variabile categorica {top['cat']} separa bene la numerica {top['num']} (p={top['statistical_test']['p_value']})."
+        })
+        
+    outliers = [r for r in results if r.get("has_influential_outliers")]
+    if outliers:
+        comments.append({
+            "role": "data_scientist",
+            "insight": f"Rilevati outlier bivariati in {len(outliers)} combinazioni (es. {outliers[0]['num']} × {outliers[0]['cat']}). Valutare trasformazioni robuste."
+        })
+        
+    return comments
 
 
 # ── Categorical × Categorical ─────────────────────────────────────────────────
@@ -427,7 +522,10 @@ def _cat_cat(df: pl.DataFrame, cat_cols: list[str]) -> dict[str, Any]:
                 logger.warning("cat×cat failed for %s × %s", a, b, exc_info=True)
 
     results.sort(key=lambda x: x["cramers_v"], reverse=True)
-    return {"pairs": results}
+    return {
+        "pairs": results,
+        "ai_comment": _comment_cat_cat(results)
+    }
 
 
 def _cat_cat_one_pair(
@@ -439,19 +537,26 @@ def _cat_cat_one_pair(
 
     Returns a result dict or ``None`` if the pair cannot be analysed.
     """
-    va = df[a].drop_nulls().cast(pl.String)
-    vb = df[b].drop_nulls().cast(pl.String)
-    n = min(len(va), len(vb))
-
-    arr_a = va[:n].to_numpy().astype(str)
-    arr_b = vb[:n].to_numpy().astype(str)
-
-    # Build contingency table using numpy (no sklearn dependency)
-    labels_a, inv_a = np.unique(arr_a, return_inverse=True)
-    labels_b, inv_b = np.unique(arr_b, return_inverse=True)
-    ct = np.zeros((len(labels_a), len(labels_b)), dtype=int)
-    for x, y in zip(inv_a, inv_b, strict=False):
-        ct[x][y] += 1
+    # Build contingency table using native Polars (Rust-optimized)
+    ct_df = (
+        df.select([a, b])
+        .drop_nulls()
+        .with_columns([
+            pl.col(a).cast(pl.String),
+            pl.col(b).cast(pl.String),
+        ])
+    )
+    if ct_df.height == 0:
+        return None
+    ct_pivoted = (
+        ct_df
+        .group_by([a, b])
+        .len()
+        .pivot(on=b, index=a, values="len", aggregate_function="first")
+        .fill_null(0)
+    )
+    # Drop the index column (a) to get a pure numeric contingency matrix
+    ct = ct_pivoted.select(pl.col("*").exclude(a)).to_numpy().astype(int)
 
     chi2, p, dof, _ = scipy_stats.chi2_contingency(ct)
     cramers_v = _cramers_v(ct)
@@ -463,3 +568,17 @@ def _cat_cat_one_pair(
         "chi2_pvalue": round(float(p), 4),
         "note": "Associazione forte" if cramers_v > _CRAMERS_STRONG else "",
     }
+
+def _comment_cat_cat(pairs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    comments = []
+    if not pairs:
+        return comments
+    
+    strong = [p for p in pairs if p["cramers_v"] > _CRAMERS_STRONG]
+    if strong:
+        top = strong[0]
+        comments.append({
+            "role": "data_scientist",
+            "insight": f"Associazione categorica forte tra {top['var_a']} e {top['var_b']} (Cramér's V={top['cramers_v']})."
+        })
+    return comments

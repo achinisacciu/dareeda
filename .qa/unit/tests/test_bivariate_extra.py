@@ -23,11 +23,14 @@ def test_run_returns_active_with_numeric_columns(bivar_df):
         "categorical_nominal": ["cat"],
     }
     result = run(bivar_df, bivar_df, {}, groups)
-    assert "num_num" in result or "active" in result
+    # Il modulo restituisce sezioni di analisi direttamente, senza wrapper "active"
+    assert "num_num" in result
 
 
 def test_run_handles_empty_dataframe():
     df = pl.DataFrame({"num1": [], "num2": []})
     groups = {"numeric_continuous": ["num1", "num2"]}
     result = run(df, df, {}, groups)
-    assert "num_num" in result or "active" in result
+    # Con dataframe vuoto la heatmap di correlazione ha ancora pairs vuoti
+    assert "num_num" in result
+    assert result["num_num"]["pairs"] == []

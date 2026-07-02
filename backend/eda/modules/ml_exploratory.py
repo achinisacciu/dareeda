@@ -4,6 +4,7 @@ import numpy as np
 import plotly.graph_objects as go
 import polars as pl
 from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
 from sklearn.ensemble import IsolationForest
 from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
 from sklearn.metrics import silhouette_score
@@ -68,18 +69,30 @@ def _mutual_info(df, feature_cols, target_col, is_class):
     try:
         feature_cols = feature_cols[:15]
 
+        # ponytail: drop_nulls invece di fill_null per non distorcere varianza
         mat = df.select([
-            pl.col(c).cast(pl.Float64).fill_null(pl.col(c).mean()) for c in feature_cols
-        ]).to_numpy()
-        mask = ~np.isnan(mat).any(axis=1)
-        mat = mat[mask]
+            pl.col(c).cast(pl.Float64) for c in feature_cols
+        ]).drop_nulls().to_numpy()
+        if len(mat) < 20:
+            return {"skipped": True, "reason": "Dati insufficienti dopo rimozione NaN"}
 
         if is_class:
-            y_raw = df[target_col].cast(pl.String).to_numpy()[mask].astype(str)
+            # ponytail: drop_nulls() senza subset per droppare null anche sul target
+            clean = df.select([
+                pl.col(c).cast(pl.Float64) for c in feature_cols
+            ] + [pl.col(target_col)])
+            clean = clean.drop_nulls()
+            mat = clean.select([pl.col(c) for c in feature_cols]).to_numpy()
+            y_raw = clean[target_col].cast(pl.String).to_numpy().astype(str)
             y = LabelEncoder().fit_transform(y_raw)
             mi = mutual_info_classif(mat, y, random_state=42)
         else:
-            y = df[target_col].cast(pl.Float64).fill_null(0).to_numpy()[mask]
+            clean = df.select([
+                pl.col(c).cast(pl.Float64) for c in feature_cols
+            ] + [pl.col(target_col).cast(pl.Float64)])
+            clean = clean.drop_nulls()
+            mat = clean.select([pl.col(c) for c in feature_cols]).to_numpy()
+            y = clean[target_col].to_numpy()
             mi = mutual_info_regression(mat, y, random_state=42)
 
         results = [
@@ -130,11 +143,10 @@ def _clustering(df, num_cols):
 
     try:
         cols = num_cols[:8]
+        # ponytail: drop_nulls invece di fill_null per non distorcere varianza
         mat = df.select([
-            pl.col(c).cast(pl.Float64).fill_null(pl.col(c).mean()) for c in cols
-        ]).to_numpy()
-        mask = ~np.isnan(mat).any(axis=1)
-        mat = mat[mask]
+            pl.col(c).cast(pl.Float64) for c in cols
+        ]).drop_nulls().to_numpy()
         if len(mat) < 20:
             return {"skipped": True, "reason": "Dati insufficienti"}
 
@@ -204,9 +216,7 @@ def _clustering(df, num_cols):
         )
 
         # PCA-based scatter dei cluster
-        from sklearn.decomposition import PCA as _PCA
-
-        pca2 = _PCA(n_components=2)
+        pca2 = PCA(n_components=2)
         coords = pca2.fit_transform(mat_s)
         colors = [
             "#FF4D00",
@@ -265,12 +275,11 @@ def _anomaly(df, num_cols):
 
     try:
         cols = num_cols[:10]
+        # ponytail: drop_nulls invece di fill_null
         mat = df.select([
-            pl.col(c).cast(pl.Float64).fill_null(pl.col(c).mean()) for c in cols
-        ]).to_numpy()
-        mask = ~np.isnan(mat).any(axis=1)
-        mat = mat[mask]
-        if len(mat) < 20:
+            pl.col(c).cast(pl.Float64) for c in cols
+        ]).drop_nulls().to_numpy()
+        if len(mat) < 21:
             return {"skipped": True, "reason": "Dati insufficienti"}
 
         mat_s = StandardScaler().fit_transform(mat)
